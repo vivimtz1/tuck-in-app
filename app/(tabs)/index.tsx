@@ -1,20 +1,31 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell, Wind, Calendar } from 'lucide-react-native';
+import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
+import { useWindDown } from '@/contexts/WindDownContext';
+
+type ScheduleItem = {
+  id: string;
+  title: string;
+  time: Date;
+  icon: string;
+};
 
 export default function HomeScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const { getEnabledItems } = useWindDown();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
+  // TODO: Fetch from Supabase - for now using defaults
   const bedtime = '11:00 PM';
   const wakeTime = '7:30 AM';
   const lastNightSleep = { hours: 7, minutes: 33 };
@@ -24,23 +35,86 @@ export default function HomeScreen() {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
-  const getTimeUntilBedtime = () => {
+  // Parse time string like "11:00 PM" to Date object for today
+  const parseTimeString = (timeStr: string): Date => {
+    const [time, period] = timeStr.split(' ');
+    const [hours, minutes] = time.split(':').map(Number);
+    const date = new Date();
+    let hour24 = hours;
+    
+    if (period === 'PM' && hours !== 12) hour24 = hours + 12;
+    if (period === 'AM' && hours === 12) hour24 = 0;
+    
+    date.setHours(hour24, minutes, 0, 0);
+    
+    // If time has passed today, set for tomorrow
     const now = new Date();
-    const target = new Date();
-    target.setHours(23, 0, 0, 0);
-
-    if (now > target) {
-      target.setDate(target.getDate() + 1);
+    if (date < now) {
+      date.setDate(date.getDate() + 1);
     }
-
-    const diff = target.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    return { hours, minutes };
+    
+    return date;
   };
 
-  const timeUntilBedtime = getTimeUntilBedtime();
+  // Generate schedule timeline based on bedtime and user's wind-down routine
+  const generateSchedule = (bedtimeStr: string): ScheduleItem[] => {
+    const bedtimeDate = parseTimeString(bedtimeStr);
+    const schedule: ScheduleItem[] = [];
+    const enabledItems = getEnabledItems();
+
+    // Add wind-down routine items based on user configuration
+    enabledItems.forEach(item => {
+      const itemTime = new Date(bedtimeDate);
+      itemTime.setMinutes(itemTime.getMinutes() - item.minutesBeforeBedtime);
+      schedule.push({
+        id: item.id,
+        title: item.title,
+        time: itemTime,
+        icon: item.icon,
+      });
+    });
+
+    // Always add bedtime at the end
+    schedule.push({
+      id: 'bedtime',
+      title: 'Bedtime',
+      time: bedtimeDate,
+      icon: '🌙',
+    });
+
+    return schedule.sort((a, b) => a.time.getTime() - b.time.getTime());
+  };
+
+  const schedule = generateSchedule(bedtime);
+  const now = currentTime;
+
+  // Check if within 15 minutes of bedtime
+  const bedtimeDate = parseTimeString(bedtime);
+  const minutesUntilBedtime = (bedtimeDate.getTime() - now.getTime()) / (1000 * 60);
+  const isWithin15Minutes = minutesUntilBedtime >= 0 && minutesUntilBedtime <= 15;
+
+  // Check if between bedtime and wake time (sleeping hours)
+  const wakeTimeDate = parseTimeString(wakeTime);
+  // If wake time is earlier than bedtime (e.g., 7 AM vs 11 PM), it's next day
+  if (wakeTimeDate < bedtimeDate) {
+    wakeTimeDate.setDate(wakeTimeDate.getDate() + 1);
+  }
+  const isBetweenBedtimeAndWake = now >= bedtimeDate || now < wakeTimeDate;
+
+  // Find next upcoming item
+  const nextItem = schedule.find(item => item.time > now) || schedule[0];
+  const nextItemIndex = schedule.findIndex(item => item === nextItem);
+
+  // Format time for display
+  const formatScheduleTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Check if item is in the past
+  const isPast = (item: ScheduleItem) => item.time < now;
+
+  // Check if item is next
+  const isNext = (item: ScheduleItem) => item === nextItem;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -58,29 +132,110 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Good Night</Text>
         </View>
 
-        <Card style={styles.bedtimeCard}>
-          <View style={styles.bedtimeHeader}>
-            <Bell color={colors.blue} size={24} />
-            <Text style={styles.bedtimeTitle}>It's Bedtime!</Text>
-          </View>
+        {/* Show bedtime card only if within 15 minutes of bedtime */}
+        {isWithin15Minutes && !isBetweenBedtimeAndWake ? (
+          <Card style={styles.bedtimeCard}>
+            <View style={styles.bedtimeHeader}>
+              <Bell color={colors.blue} size={24} />
+              <Text style={styles.bedtimeTitle}>It's Bedtime!</Text>
+            </View>
 
-          <View style={styles.teddyContainer}>
-            <Text style={styles.teddyLarge}>🧸</Text>
-          </View>
+            <View style={styles.teddyContainer}>
+              <Text style={styles.teddyLarge}>🧸</Text>
+            </View>
 
-          <Text style={styles.bedtimeMessage}>
-            Sweet dreams, your alarm is set for {wakeTime}
-          </Text>
+            <Text style={styles.bedtimeMessage}>
+              Sweet dreams, your alarm is set for {wakeTime}
+            </Text>
 
-          <View style={styles.bedtimeActions}>
-            <TouchableOpacity style={styles.changeButton}>
-              <Text style={styles.changeButtonText}>Change</Text>
+            <View style={styles.bedtimeActions}>
+              <TouchableOpacity style={styles.changeButton}>
+                <Text style={styles.changeButtonText}>Change</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton}>
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        ) : (
+          /* Show schedule timeline */
+          <Card style={styles.scheduleCard}>
+            <TouchableOpacity
+              style={styles.scheduleHeader}
+              onPress={() => setIsTimelineExpanded(!isTimelineExpanded)}
+            >
+              <View style={styles.scheduleHeaderLeft}>
+                <Clock color={colors.blue} size={24} />
+                <View style={styles.scheduleHeaderText}>
+                  <Text style={styles.scheduleTitle}>
+                    {nextItem.title}
+                  </Text>
+                  <Text style={styles.scheduleSubtitle}>
+                    {formatScheduleTime(nextItem.time)}
+                  </Text>
+                </View>
+              </View>
+              {isTimelineExpanded ? (
+                <ChevronUp color={colors.textMuted} size={20} />
+              ) : (
+                <ChevronDown color={colors.textMuted} size={20} />
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmButton}>
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
+
+            {isTimelineExpanded && (
+              <View style={styles.timeline}>
+                {schedule.map((item, index) => {
+                  const isLast = index === schedule.length - 1;
+                  const itemIsPast = isPast(item);
+                  const itemIsNext = isNext(item);
+
+                  return (
+                    <View key={item.id} style={styles.timelineItem}>
+                      <View style={styles.timelineLeft}>
+                        <View
+                          style={[
+                            styles.timelineDot,
+                            itemIsPast && styles.timelineDotPast,
+                            itemIsNext && styles.timelineDotNext,
+                          ]}
+                        >
+                          <Text style={styles.timelineIcon}>{item.icon}</Text>
+                        </View>
+                        {!isLast && (
+                          <View
+                            style={[
+                              styles.timelineLine,
+                              itemIsPast && styles.timelineLinePast,
+                            ]}
+                          />
+                        )}
+                      </View>
+                      <View style={styles.timelineContent}>
+                        <Text
+                          style={[
+                            styles.timelineTitle,
+                            itemIsPast && styles.timelineTitlePast,
+                            itemIsNext && styles.timelineTitleNext,
+                          ]}
+                        >
+                          {item.title}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.timelineTime,
+                            itemIsPast && styles.timelineTimePast,
+                          ]}
+                        >
+                          {formatScheduleTime(item.time)}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </Card>
+        )}
 
         <View style={styles.scheduleRow}>
           <View style={styles.scheduleItem}>
@@ -335,5 +490,102 @@ const styles = StyleSheet.create({
   actionDescription: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  scheduleCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  scheduleHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  scheduleHeaderText: {
+    flex: 1,
+  },
+  scheduleTitle: {
+    ...typography.h3,
+    color: colors.cream,
+    marginBottom: 2,
+  },
+  scheduleSubtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  timeline: {
+    marginTop: spacing.lg,
+    paddingLeft: spacing.md,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
+  },
+  timelineLeft: {
+    alignItems: 'center',
+    marginRight: spacing.md,
+    width: 32,
+  },
+  timelineDot: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  timelineDotPast: {
+    backgroundColor: colors.success + '30',
+    borderColor: colors.success,
+  },
+  timelineDotNext: {
+    backgroundColor: colors.blue + '30',
+    borderColor: colors.blue,
+    borderWidth: 3,
+  },
+  timelineIcon: {
+    fontSize: 16,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: colors.border,
+    marginTop: spacing.xs,
+    minHeight: 20,
+  },
+  timelineLinePast: {
+    backgroundColor: colors.success,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingTop: 4,
+  },
+  timelineTitle: {
+    ...typography.body,
+    color: colors.textMuted,
+    fontFamily: 'Fredoka-Regular',
+    marginBottom: 2,
+  },
+  timelineTitlePast: {
+    color: colors.textMuted,
+    opacity: 0.6,
+  },
+  timelineTitleNext: {
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+  },
+  timelineTime: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  timelineTimePast: {
+    opacity: 0.6,
   },
 });

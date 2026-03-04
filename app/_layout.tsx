@@ -8,6 +8,7 @@ import {
   Fredoka_500Medium,
 } from '@expo-google-fonts/fredoka';
 import { SplashScreen } from 'expo-router';
+import { WindDownProvider } from '@/contexts/WindDownContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,12 +31,12 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <WindDownProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="light" />
-    </>
+    </WindDownProvider>
   );
 }
