@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight, X } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { router } from 'expo-router';
@@ -10,10 +10,24 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [bedtimeReminders, setBedtimeReminders] = useState(true);
   const [morningCheckins, setMorningCheckins] = useState(true);
+  const [teddyName, setTeddyName] = useState('Teddy');
+  const [editingTeddyName, setEditingTeddyName] = useState('');
+  const [showTeddyModal, setShowTeddyModal] = useState(false);
 
   const userName = 'Clara Lu';
-  const teddyName = 'Teddy';
   const currentStreak = 5;
+
+  const openTeddyModal = () => {
+    setEditingTeddyName(teddyName);
+    setShowTeddyModal(true);
+  };
+
+  const saveTeddyName = () => {
+    if (editingTeddyName.trim()) {
+      setTeddyName(editingTeddyName.trim());
+    }
+    setShowTeddyModal(false);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -39,11 +53,44 @@ export default function ProfileScreen() {
               <Text style={styles.teddyLabel}>Your Teddy</Text>
               <Text style={styles.teddyName}>{teddyName}</Text>
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={openTeddyModal}>
               <Text style={styles.editButton}>Edit</Text>
             </TouchableOpacity>
           </View>
         </Card>
+
+        <Modal
+          visible={showTeddyModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowTeddyModal(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowTeddyModal(false)}>
+            <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Teddy's Name</Text>
+                <TouchableOpacity onPress={() => setShowTeddyModal(false)}>
+                  <X color={colors.textMuted} size={24} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modalTeddyPreview}>
+                <Text style={styles.modalTeddyEmoji}>🧸</Text>
+              </View>
+              <TextInput
+                style={styles.teddyInput}
+                value={editingTeddyName}
+                onChangeText={setEditingTeddyName}
+                placeholder="Enter name"
+                placeholderTextColor={colors.textMuted}
+                maxLength={12}
+                autoFocus
+              />
+              <TouchableOpacity style={styles.saveButton} onPress={saveTeddyName}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Text style={styles.sectionTitle}>Sleep Settings</Text>
 
@@ -255,6 +302,60 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.blue,
     fontFamily: 'Fredoka-Medium',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.cream,
+  },
+  modalTeddyPreview: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalTeddyEmoji: {
+    fontSize: 64,
+  },
+  teddyInput: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    ...typography.body,
+    color: colors.cream,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  saveButton: {
+    backgroundColor: colors.cream,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    ...typography.body,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.dark,
   },
   sectionTitle: {
     ...typography.h3,
