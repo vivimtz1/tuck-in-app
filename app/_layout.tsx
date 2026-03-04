@@ -32,7 +32,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <WindDownProvider>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -44,8 +44,6 @@ export default function RootLayout() {
         <Stack.Screen name="welcome" />
         <Stack.Screen name="login" />
         <Stack.Screen name="onboarding" />
-    <WindDownProvider>
-      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="checkin" />
         <Stack.Screen name="schedule" />
