@@ -6,6 +6,7 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 
 const { width } = Dimensions.get('window');
+const CHART_HEIGHT = 180;
 
 export default function ProgressScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
@@ -27,7 +28,7 @@ export default function ProgressScreen() {
   ];
 
   const maxHours = 10;
-  const chartHeight = 180;
+  const chartHeight = CHART_HEIGHT;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   chart: {
-    height: chartHeight,
+    height: CHART_HEIGHT,
     position: 'relative',
   },
   chartGrid: {
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: chartHeight,
+    height: CHART_HEIGHT,
     justifyContent: 'space-between',
   },
   gridLine: {
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    height: chartHeight,
+    height: CHART_HEIGHT,
     paddingLeft: 40,
   },
   barContainer: {
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
     width: '80%',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    height: chartHeight - 20,
+    height: CHART_HEIGHT - 20,
   },
   bar: {
     width: '100%',

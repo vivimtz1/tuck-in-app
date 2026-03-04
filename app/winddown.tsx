@@ -207,6 +207,8 @@ export default function WindDownScreen() {
     }
   };
 
+  const StepIcon = currentStep.icon;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -239,7 +241,7 @@ export default function WindDownScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Card style={styles.stepCard}>
           <View style={styles.stepHeader}>
-            <currentStep.icon color={colors.blue} size={28} />
+            <StepIcon color={colors.blue} size={28} />
             <View style={styles.stepHeaderText}>
               <Text style={styles.stepTitle}>{currentStep.title}</Text>
               <Text style={styles.stepDescription}>{currentStep.description}</Text>
