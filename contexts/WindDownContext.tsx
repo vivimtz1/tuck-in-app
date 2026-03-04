@@ -18,6 +18,8 @@ const DEFAULT_ROUTINE: WindDownItem[] = [
     enabled: true,
     minutesBeforeBedtime: 30,
     order: 0,
+    duration: 10,
+    description: '4-7-8 breathing pattern to calm your mind and prepare for sleep. Teddy will guide you through each breath.',
   },
   {
     id: 'phone',
@@ -25,8 +27,10 @@ const DEFAULT_ROUTINE: WindDownItem[] = [
     title: 'Put Phone Away',
     icon: '📱',
     enabled: true,
-    minutesBeforeBedtime: 15,
+    minutesBeforeBedtime: 20,
     order: 1,
+    duration: 1,
+    description: 'Time to disconnect from screens. Place your phone in another room or face down to avoid distractions.',
   },
   {
     id: 'lights',
@@ -34,8 +38,10 @@ const DEFAULT_ROUTINE: WindDownItem[] = [
     title: 'Dim the Lights',
     icon: '💡',
     enabled: true,
-    minutesBeforeBedtime: 10,
+    minutesBeforeBedtime: 19,
     order: 2,
+    duration: 2,
+    description: 'Create a sleep-friendly environment by dimming lights. This helps signal to your body that it\'s time to wind down.',
   },
   {
     id: 'audio',
@@ -43,8 +49,10 @@ const DEFAULT_ROUTINE: WindDownItem[] = [
     title: 'Sleep Sounds',
     icon: '🔊',
     enabled: true,
-    minutesBeforeBedtime: 5,
+    minutesBeforeBedtime: 17,
     order: 3,
+    duration: 30,
+    description: 'Calming nature sounds like rain, ocean waves, or white noise to help you drift off. Teddy can play these throughout the night.',
   },
 ];
 

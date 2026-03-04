@@ -1,0 +1,28 @@
+---
+alwaysApply: true
+---
+
+# Tuck In App - Project Structure
+
+## Key Files
+
+- [app/_layout.tsx](mdc:app/_layout.tsx) - Root layout with WindDownProvider
+- [app/(tabs)/index.tsx](mdc:app/(tabs)/index.tsx) - Home screen with schedule timeline
+- [app/winddown-routine.tsx](mdc:app/winddown-routine.tsx) - Wind-down routine configuration
+- [contexts/WindDownContext.tsx](mdc:contexts/WindDownContext.tsx) - Routine state management
+- [lib/supabase.ts](mdc:lib/supabase.ts) - Supabase client configuration
+
+## Wind-Down Routine System
+
+The wind-down routine is managed through:
+1. **Context**: [contexts/WindDownContext.tsx](mdc:contexts/WindDownContext.tsx) stores routine items
+2. **Configuration Screen**: [app/winddown-routine.tsx](mdc:app/winddown-routine.tsx) allows users to customize
+3. **Home Screen**: [app/(tabs)/index.tsx](mdc:app/(tabs)/index.tsx) displays the schedule timeline
+4. **Wind-Down Flow**: [app/winddown.tsx](mdc:app/winddown.tsx) guides users through enabled items
+
+## Important Notes
+
+- Routine items have `duration` and `description` properties
+- Timing is automatically adjusted when items are reordered
+- Validation prevents overlapping times
+- Items are sorted by `order` field for display
