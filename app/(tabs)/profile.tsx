@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -57,7 +58,7 @@ export default function ProfileScreen() {
           <ChevronRight color={colors.textMuted} size={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem}>
+        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/winddown-routine')}>
           <View style={styles.settingIcon}>
             <Settings color={colors.blue} size={20} />
           </View>

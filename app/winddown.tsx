@@ -6,6 +6,33 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
+import { useWindDown } from '@/contexts/WindDownContext';
+
+const ICON_MAP: Record<string, any> = {
+  breathing: Wind,
+  meditation: Wind,
+  phone: Smartphone,
+  lights: Lightbulb,
+  audio: Volume2,
+  music: Volume2,
+  stretching: Wind,
+  journaling: Smartphone,
+  reading: Lightbulb,
+  gratitude: Wind,
+};
+
+const DESCRIPTIONS: Record<string, string> = {
+  breathing: '4-7-8 breathing to calm your mind',
+  meditation: 'Guided meditation to relax and center yourself',
+  phone: 'Time to disconnect from screens',
+  lights: 'Create a sleep-friendly environment',
+  audio: 'Choose calming sounds for sleep',
+  music: 'Listen to calming music to unwind',
+  stretching: 'Gentle stretches to release tension',
+  journaling: 'Reflect on your day and clear your mind',
+  reading: 'Read something calming before bed',
+  gratitude: 'Practice gratitude and positive reflection',
+};
 
 export default function WindDownScreen() {
   const [activeStep, setActiveStep] = useState(0);
@@ -13,8 +40,22 @@ export default function WindDownScreen() {
   const [breathCount, setBreathCount] = useState(0);
   const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const breathAnimation = useRef(new Animated.Value(0)).current;
+  const { getEnabledItems } = useWindDown();
 
-  const steps = [
+  // Convert wind-down items to steps for the routine, sorted by order
+  const routineItems = getEnabledItems().sort((a, b) => a.order - b.order);
+  const steps = routineItems.map(item => ({
+    id: item.id,
+    title: item.title,
+    icon: ICON_MAP[item.type] || Wind,
+    description: DESCRIPTIONS[item.type] || '',
+    duration: item.type === 'breathing' || item.type === 'meditation' ? 5 : 
+              item.type === 'audio' || item.type === 'music' ? 30 : 
+              item.type === 'stretching' ? 10 : 1,
+  }));
+
+  // If no items enabled, use default
+  const finalSteps = steps.length > 0 ? steps : [
     {
       id: 'breathing',
       title: 'Breathing Exercise',
@@ -22,30 +63,9 @@ export default function WindDownScreen() {
       description: '4-7-8 breathing to calm your mind',
       duration: 5,
     },
-    {
-      id: 'phone',
-      title: 'Put Down Phone',
-      icon: Smartphone,
-      description: 'Time to disconnect from screens',
-      duration: 1,
-    },
-    {
-      id: 'lights',
-      title: 'Dim the Lights',
-      icon: Lightbulb,
-      description: 'Create a sleep-friendly environment',
-      duration: 1,
-    },
-    {
-      id: 'audio',
-      title: 'Sleep Sounds',
-      icon: Volume2,
-      description: 'Choose calming sounds for sleep',
-      duration: 30,
-    },
   ];
 
-  const currentStep = steps[activeStep];
+  const currentStep = finalSteps[activeStep];
 
   useEffect(() => {
     if (breathingActive) {
@@ -81,7 +101,7 @@ export default function WindDownScreen() {
   }, [breathingActive]);
 
   const handleNext = () => {
-    if (activeStep < steps.length - 1) {
+    if (activeStep < finalSteps.length - 1) {
       setActiveStep(activeStep + 1);
     } else {
       router.back();
@@ -89,7 +109,7 @@ export default function WindDownScreen() {
   };
 
   const handleSkip = () => {
-    if (activeStep < steps.length - 1) {
+    if (activeStep < finalSteps.length - 1) {
       setActiveStep(activeStep + 1);
     } else {
       router.back();
@@ -223,7 +243,7 @@ export default function WindDownScreen() {
 
       <View style={styles.progress}>
         <View style={styles.progressBar}>
-          {steps.map((step, index) => (
+          {finalSteps.map((step, index) => (
             <View
               key={step.id}
               style={[
@@ -234,7 +254,7 @@ export default function WindDownScreen() {
           ))}
         </View>
         <Text style={styles.progressText}>
-          Step {activeStep + 1} of {steps.length}
+          Step {activeStep + 1} of {finalSteps.length}
         </Text>
       </View>
 
@@ -253,7 +273,7 @@ export default function WindDownScreen() {
 
         <View style={styles.actions}>
           <Button
-            title={activeStep === steps.length - 1 ? 'Finish' : 'Next'}
+            title={activeStep === finalSteps.length - 1 ? 'Finish' : 'Next'}
             onPress={handleNext}
             fullWidth
           />

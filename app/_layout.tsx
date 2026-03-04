@@ -9,6 +9,7 @@ import {
 } from '@expo-google-fonts/fredoka';
 import { SplashScreen } from 'expo-router';
 import { colors } from '@/constants/theme';
+import { WindDownProvider } from '@/contexts/WindDownContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,6 +44,8 @@ export default function RootLayout() {
         <Stack.Screen name="welcome" />
         <Stack.Screen name="login" />
         <Stack.Screen name="onboarding" />
+    <WindDownProvider>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="checkin" />
         <Stack.Screen name="schedule" />
@@ -50,6 +53,6 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="light" />
-    </>
+    </WindDownProvider>
   );
 }
