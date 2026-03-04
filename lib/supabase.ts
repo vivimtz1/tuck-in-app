@@ -83,6 +83,44 @@ export type Database = {
           created_at: string;
         };
       };
+      alarms: {
+        Row: {
+          id: string;
+          user_id: string;
+          label: string;
+          time: string;
+          days: string[];
+          alarm_type: 'wake' | 'bedtime';
+          sound: string;
+          volume: number;
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          label?: string;
+          time: string;
+          days: string[];
+          alarm_type?: 'wake' | 'bedtime';
+          sound?: string;
+          volume?: number;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          label?: string;
+          time?: string;
+          days?: string[];
+          alarm_type?: 'wake' | 'bedtime';
+          sound?: string;
+          volume?: number;
+          enabled?: boolean;
+          updated_at?: string;
+        };
+      };
     };
   };
 };
