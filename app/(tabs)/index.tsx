@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock } from 'lucide-react-native';
+import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -19,6 +19,8 @@ export default function HomeScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const { getEnabledItems } = useWindDown();
+  const enabledItems = getEnabledItems();
+  const hasNoWindDownRoutine = enabledItems.length === 0;
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -60,7 +62,6 @@ export default function HomeScreen() {
   const generateSchedule = (bedtimeStr: string): ScheduleItem[] => {
     const bedtimeDate = parseTimeString(bedtimeStr);
     const schedule: ScheduleItem[] = [];
-    const enabledItems = getEnabledItems();
 
     // Add wind-down routine items based on user configuration
     enabledItems.forEach(item => {
@@ -157,6 +158,22 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </Card>
+        ) : hasNoWindDownRoutine ? (
+          /* New user: prompt to set up wind-down routine */
+          <TouchableOpacity
+            style={styles.windDownEmptyCard}
+            onPress={() => router.push('/winddown-routine')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.windDownEmptyIconWrap}>
+              <Wind color={colors.blue} size={22} />
+            </View>
+            <View style={styles.windDownEmptyContent}>
+              <Text style={styles.windDownEmptyTitle}>Set up your wind-down routine</Text>
+              <Text style={styles.windDownEmptyDescription}>Add activities before bed, then we’ll build your timeline.</Text>
+            </View>
+            <Settings2 color={colors.textMuted} size={20} />
+          </TouchableOpacity>
         ) : (
           /* Show schedule timeline */
           <Card style={styles.scheduleCard}>
@@ -183,56 +200,65 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             {isTimelineExpanded && (
-              <View style={styles.timeline}>
-                {schedule.map((item, index) => {
-                  const isLast = index === schedule.length - 1;
-                  const itemIsPast = isPast(item);
-                  const itemIsNext = isNext(item);
+              <>
+                <View style={styles.timeline}>
+                  {schedule.map((item, index) => {
+                    const isLast = index === schedule.length - 1;
+                    const itemIsPast = isPast(item);
+                    const itemIsNext = isNext(item);
 
-                  return (
-                    <View key={item.id} style={styles.timelineItem}>
-                      <View style={styles.timelineLeft}>
-                        <View
-                          style={[
-                            styles.timelineDot,
-                            itemIsPast && styles.timelineDotPast,
-                            itemIsNext && styles.timelineDotNext,
-                          ]}
-                        >
-                          <Text style={styles.timelineIcon}>{item.icon}</Text>
-                        </View>
-                        {!isLast && (
+                    return (
+                      <View key={item.id} style={styles.timelineItem}>
+                        <View style={styles.timelineLeft}>
                           <View
                             style={[
-                              styles.timelineLine,
-                              itemIsPast && styles.timelineLinePast,
+                              styles.timelineDot,
+                              itemIsPast && styles.timelineDotPast,
+                              itemIsNext && styles.timelineDotNext,
                             ]}
-                          />
-                        )}
+                          >
+                            <Text style={styles.timelineIcon}>{item.icon}</Text>
+                          </View>
+                          {!isLast && (
+                            <View
+                              style={[
+                                styles.timelineLine,
+                                itemIsPast && styles.timelineLinePast,
+                              ]}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.timelineContent}>
+                          <Text
+                            style={[
+                              styles.timelineTitle,
+                              itemIsPast && styles.timelineTitlePast,
+                              itemIsNext && styles.timelineTitleNext,
+                            ]}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.timelineTime,
+                              itemIsPast && styles.timelineTimePast,
+                            ]}
+                          >
+                            {formatScheduleTime(item.time)}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.timelineContent}>
-                        <Text
-                          style={[
-                            styles.timelineTitle,
-                            itemIsPast && styles.timelineTitlePast,
-                            itemIsNext && styles.timelineTitleNext,
-                          ]}
-                        >
-                          {item.title}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.timelineTime,
-                            itemIsPast && styles.timelineTimePast,
-                          ]}
-                        >
-                          {formatScheduleTime(item.time)}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
+                    );
+                  })}
+                </View>
+                <TouchableOpacity
+                  style={styles.timelineEditButton}
+                  onPress={() => router.push('/winddown-routine')}
+                >
+                  <Pencil color={colors.blue} size={18} />
+                  <Text style={styles.timelineEditText}>Edit routine</Text>
+                </TouchableOpacity>
+              </>
             )}
           </Card>
         )}
@@ -291,6 +317,18 @@ export default function HomeScreen() {
             <Text style={styles.actionTitle}>Adjust Sleep Schedule</Text>
             <Text style={styles.actionDescription}>
               Change your bedtime or wake time
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/winddown-routine')}>
+          <View style={styles.actionIcon}>
+            <Settings2 color={colors.blue} size={24} />
+          </View>
+          <View style={styles.actionContent}>
+            <Text style={styles.actionTitle}>Adjust Wind-Down Routine</Text>
+            <Text style={styles.actionDescription}>
+              Customize your pre-bed activities and order
             </Text>
           </View>
         </TouchableOpacity>
@@ -495,6 +533,42 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
+  windDownEmptyCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  windDownEmptyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.blue + '25',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  windDownEmptyContent: {
+    flex: 1,
+  },
+  windDownEmptyTitle: {
+    ...typography.body,
+    fontSize: 15,
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+    marginBottom: 2,
+  },
+  windDownEmptyDescription: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
   scheduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -587,5 +661,19 @@ const styles = StyleSheet.create({
   },
   timelineTimePast: {
     opacity: 0.6,
+  },
+  timelineEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  timelineEditText: {
+    ...typography.body,
+    color: colors.blue,
+    fontFamily: 'Fredoka-Medium',
   },
 });

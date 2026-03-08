@@ -3,7 +3,7 @@ import { WindDownItem } from '@/app/winddown-routine';
 
 type WindDownContextType = {
   routineItems: WindDownItem[];
-  setRoutineItems: (items: WindDownItem[]) => void;
+  setRoutineItems: React.Dispatch<React.SetStateAction<WindDownItem[]>>;
   getEnabledItems: () => WindDownItem[];
 };
 
@@ -57,7 +57,8 @@ const DEFAULT_ROUTINE: WindDownItem[] = [
 ];
 
 export function WindDownProvider({ children }: { children: ReactNode }) {
-  const [routineItems, setRoutineItems] = useState<WindDownItem[]>(DEFAULT_ROUTINE);
+  // New users start with no routine; they set it up in winddown-routine
+  const [routineItems, setRoutineItems] = useState<WindDownItem[]>([]);
 
   const getEnabledItems = () => {
     return routineItems.filter(item => item.enabled);

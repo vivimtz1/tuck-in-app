@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
 import {
@@ -32,14 +33,15 @@ export default function RootLayout() {
   }
 
   return (
-    <WindDownProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'slide_from_right',
-        }}
-      >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <WindDownProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'slide_from_right',
+          }}
+        >
         <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Screen name="welcome" />
         <Stack.Screen name="login" />
@@ -49,8 +51,9 @@ export default function RootLayout() {
         <Stack.Screen name="schedule" />
         <Stack.Screen name="winddown" />
         <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="light" />
-    </WindDownProvider>
+        </Stack>
+        <StatusBar style="light" />
+      </WindDownProvider>
+    </GestureHandlerRootView>
   );
 }

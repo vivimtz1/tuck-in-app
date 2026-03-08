@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, Clock, Info } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useRef, useEffect } from 'react';
+import { Swipeable } from 'react-native-gesture-handler';
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, Clock, Info, Trash2 } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -113,8 +114,20 @@ const AVAILABLE_ITEMS: ItemDefinition[] = [
 ];
 
 export default function WindDownRoutineScreen() {
+  const insets = useSafeAreaInsets();
   const { routineItems, setRoutineItems } = useWindDown();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const initialRoutineRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (initialRoutineRef.current === null) {
+      initialRoutineRef.current = JSON.stringify(routineItems);
+    }
+  }, []);
+
+  const hasChanges =
+    initialRoutineRef.current !== null &&
+    JSON.stringify(routineItems) !== initialRoutineRef.current;
 
   // Get item definition by id
   const getItemDefinition = (id: string): ItemDefinition | undefined => {
@@ -241,6 +254,13 @@ export default function WindDownRoutineScreen() {
     router.back();
   };
 
+  const removeItem = (id: string) => {
+    setRoutineItems(items => {
+      const filtered = items.filter(i => i.id !== id);
+      return adjustTimingAfterReorder(filtered);
+    });
+  };
+
   const moveItem = (id: string, direction: 'up' | 'down') => {
     setRoutineItems(items => {
       // Sort by minutesBeforeBedtime descending (same as display order)
@@ -273,122 +293,92 @@ export default function WindDownRoutineScreen() {
   const sortedItems = [...routineItems].sort((a, b) => b.minutesBeforeBedtime - a.minutesBeforeBedtime);
   const validation = validateRoutine(routineItems);
 
+  const renderRightActions = (itemId: string) => {
+    return (
+      <TouchableOpacity
+        style={styles.swipeDeleteAction}
+        onPress={() => removeItem(itemId)}
+        activeOpacity={1}
+      >
+        <Trash2 color={colors.cream} size={22} />
+        <Text style={styles.swipeDeleteText}>Remove</Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderItem = (item: WindDownItem, index: number) => {
     const itemDef = getItemDefinition(item.id);
     const startTime = getStartTime(item);
-    const endTime = getEndTime(item);
 
     return (
-      <Card key={item.id} style={styles.routineItemCard}>
-        <View style={styles.routineItemHeader}>
-          <View style={styles.moveButtonsVertical}>
-            <TouchableOpacity
-              style={[styles.moveButtonInline, index === 0 && styles.moveButtonDisabled]}
-              onPress={() => moveItem(item.id, 'up')}
-              disabled={index === 0}
-            >
-              <ChevronUp color={index === 0 ? colors.border : colors.textMuted} size={18} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.moveButtonInline, index === sortedItems.length - 1 && styles.moveButtonDisabled]}
-              onPress={() => moveItem(item.id, 'down')}
-              disabled={index === sortedItems.length - 1}
-            >
-              <ChevronDown color={index === sortedItems.length - 1 ? colors.border : colors.textMuted} size={18} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.routineItemLeft}>
-            <View style={[styles.routineItemIcon, !item.enabled && styles.routineItemIconDisabled]}>
-              <Text style={styles.iconEmoji}>{item.icon}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.routineItemInfo}
-              onPress={() => {
-                setRoutineItems(items =>
-                  items.map(i => (i.id === item.id ? { ...i, enabled: !i.enabled } : i))
-                );
-              }}
-            >
-              <Text style={[styles.routineItemTitle, !item.enabled && styles.routineItemTitleDisabled]}>
-                {item.title}
-              </Text>
-              <View style={styles.routineItemMeta}>
-                <Text style={styles.routineItemTime}>
-                  {startTime} min before bedtime
-                </Text>
-                {itemDef && (
-                  <View style={styles.durationBadge}>
-                    <Clock color={colors.textMuted} size={12} />
-                    <Text style={styles.durationText}>{itemDef.duration} min</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.routineItemActions}>
-            <TouchableOpacity
-              style={styles.expandButton}
-              onPress={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
-            >
-              {expandedItem === item.id ? (
-                <ChevronUp color={colors.textMuted} size={20} />
-              ) : (
-                <ChevronDown color={colors.textMuted} size={20} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {expandedItem === item.id && (
-          <View style={styles.routineItemExpanded}>
-            {itemDef && (
-              <View style={styles.itemDetails}>
-                <View style={styles.detailRow}>
-                  <Info color={colors.blue} size={16} />
-                  <Text style={styles.detailText}>{itemDef.description}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Clock color={colors.textMuted} size={16} />
-                  <Text style={styles.detailText}>
-                    Duration: {itemDef.duration} minutes • Ends {endTime} min before bedtime
-                  </Text>
-                </View>
+      <Swipeable
+        key={item.id}
+        renderRightActions={() => renderRightActions(item.id)}
+        friction={2}
+        rightThreshold={40}
+      >
+        <Card style={styles.routineItemCard}>
+          <View style={styles.routineItemHeader}>
+            {sortedItems.length >= 2 && (
+              <View style={styles.moveButtonsVertical}>
+                <TouchableOpacity
+                  style={[styles.moveButtonInline, index === 0 && styles.moveButtonDisabled]}
+                  onPress={() => moveItem(item.id, 'up')}
+                  disabled={index === 0}
+                >
+                  <ChevronUp color={index === 0 ? colors.border : colors.textMuted} size={18} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.moveButtonInline, index === sortedItems.length - 1 && styles.moveButtonDisabled]}
+                  onPress={() => moveItem(item.id, 'down')}
+                  disabled={index === sortedItems.length - 1}
+                >
+                  <ChevronDown color={index === sortedItems.length - 1 ? colors.border : colors.textMuted} size={18} />
+                </TouchableOpacity>
               </View>
             )}
-
-            <View style={styles.timeInputContainer}>
-              <Text style={styles.timeInputLabel}>Start time (minutes before bedtime):</Text>
-              <View style={styles.timeInputRow}>
-                <TouchableOpacity
-                  style={styles.timeButton}
-                  onPress={() => updateItemTime(item.id, Math.max(0, item.minutesBeforeBedtime - 5))}
-                >
-                  <Text style={styles.timeButtonText}>-5</Text>
-                </TouchableOpacity>
-                <TextInput
-                  style={styles.timeInput}
-                  value={item.minutesBeforeBedtime.toString()}
-                  onChangeText={(text) => {
-                    const num = parseInt(text, 10);
-                    if (!isNaN(num) && num >= 0) {
-                      updateItemTime(item.id, num);
-                    }
-                  }}
-                  keyboardType="numeric"
-                  selectTextOnFocus
-                />
-                <TouchableOpacity
-                  style={styles.timeButton}
-                  onPress={() => updateItemTime(item.id, item.minutesBeforeBedtime + 5)}
-                >
-                  <Text style={styles.timeButtonText}>+5</Text>
-                </TouchableOpacity>
+            <View style={[styles.routineItemLeft, sortedItems.length === 1 && styles.routineItemLeftSingle]}>
+              <View style={styles.routineItemIcon}>
+                <Text style={styles.iconEmoji}>{item.icon}</Text>
+              </View>
+              <View style={styles.routineItemInfo}>
+                <View style={styles.routineItemTitleRow}>
+                  <View style={styles.routineItemTitleWithDuration}>
+                    <Text style={styles.routineItemTitle}>{item.title}</Text>
+                    {itemDef && (
+                      <Text style={styles.routineItemDurationInline}>{itemDef.duration} min</Text>
+                    )}
+                  </View>
+                  <Text style={styles.routineItemTimeInline}>{startTime} min before bed</Text>
+                </View>
               </View>
             </View>
+            <View style={styles.routineItemActions}>
+              <TouchableOpacity
+                style={styles.expandButton}
+                onPress={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+              >
+                {expandedItem === item.id ? (
+                  <ChevronUp color={colors.textMuted} size={20} />
+                ) : (
+                  <ChevronDown color={colors.textMuted} size={20} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
 
+          {expandedItem === item.id && (
+          <View style={styles.routineItemExpanded}>
+            {itemDef && (
+              <View style={styles.detailRow}>
+                <Info color={colors.blue} size={16} />
+                <Text style={styles.detailText}>{itemDef.description}</Text>
+              </View>
+            )}
           </View>
         )}
-      </Card>
+        </Card>
+      </Swipeable>
     );
   };
 
@@ -402,9 +392,13 @@ export default function WindDownRoutineScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.sectionTitle}>Your Routine</Text>
-        <Text style={styles.sectionSubtitle}>Use arrows to reorder • Tap to select/deselect</Text>
+        <Text style={styles.sectionSubtitle}>Use arrows to reorder • Swipe left to remove</Text>
 
         {sortedItems.length === 0 ? (
           <Card style={styles.emptyCard}>
@@ -414,7 +408,7 @@ export default function WindDownRoutineScreen() {
         ) : (
           <View style={styles.itemsContainer}>
             {sortedItems.map((item, index) => (
-              <View key={item.id}>
+              <View key={item.id} style={styles.routineItemWrapper}>
                 {renderItem(item, index)}
               </View>
             ))}
@@ -446,13 +440,12 @@ export default function WindDownRoutineScreen() {
           </>
         )}
 
-        <View style={styles.actions}>
-          <Button title="Save Routine" onPress={handleSave} fullWidth />
-        </View>
-
-        <View style={{ height: spacing.xl }} />
+        <View style={styles.scrollBottomPadding} />
       </ScrollView>
 
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+        <Button title="Save Routine" onPress={handleSave} fullWidth disabled={!hasChanges} />
+      </View>
     </SafeAreaView>
   );
 }
@@ -480,6 +473,19 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  scrollBottomPadding: {
+    height: 100,
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   itemsContainer: {
     paddingBottom: spacing.md,
@@ -546,9 +552,26 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
-  routineItemCard: {
+  routineItemWrapper: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
+  },
+  swipeDeleteAction: {
+    backgroundColor: colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderTopRightRadius: borderRadius.lg,
+    borderBottomRightRadius: borderRadius.lg,
+  },
+  swipeDeleteText: {
+    ...typography.caption,
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+    marginTop: 4,
+  },
+  routineItemCard: {
+    // No margin – wrapper provides inset; keeps swipe row same height as card
   },
   routineItemHeader: {
     flexDirection: 'row',
@@ -560,6 +583,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     gap: spacing.md,
+  },
+  routineItemLeftSingle: {
+    // Single item: no arrows, content starts from left
   },
   routineItemIcon: {
     width: 48,
@@ -578,15 +604,34 @@ const styles = StyleSheet.create({
   routineItemInfo: {
     flex: 1,
   },
+  routineItemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  routineItemTitleWithDuration: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    flexShrink: 0,
+  },
   routineItemTitle: {
     ...typography.body,
     color: colors.cream,
     fontFamily: 'Fredoka-Medium',
-    marginBottom: 2,
   },
   routineItemTitleDisabled: {
     opacity: 0.4,
     textDecorationLine: 'line-through',
+  },
+  routineItemDurationInline: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  routineItemTimeInline: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
   routineItemMeta: {
     flexDirection: 'row',
