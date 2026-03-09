@@ -2,7 +2,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react
 import { useRef, useEffect } from 'react';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 
-const MESSAGES = [
+const SUCCESS_MESSAGES = [
   { title: "You did it! 🎉", body: "Teddy is SO proud of you!\nYou hit your sleep goal tonight!" },
   { title: "Sleep champion! 🏆", body: "Teddy did a little happy dance\njust for you!" },
   { title: "Goal unlocked! ⭐", body: "Sweet dreams AND a sleep goal?\nYou're absolutely incredible!" },
@@ -10,16 +10,25 @@ const MESSAGES = [
   { title: "You're on fire! 🔥", body: "Another night, another goal crushed.\nTeddy is beaming with pride!" },
 ];
 
+const ENCOURAGE_MESSAGES = [
+  { title: "Good morning!", body: "Every night is a fresh start.\nTeddy believes in you!" },
+  { title: "You woke up!", body: "Sleep is a journey, not a race.\nTomorrow's another chance!" },
+  { title: "Rise and shine!", body: "You're doing great.\nLet's aim for the goal tonight!" },
+  { title: "Hey sleepyhead!", body: "Not quite 7 hours, but\nthat's okay—you've got this!" },
+];
+
 type Props = {
   visible: boolean;
   durationMinutes: number;
+  goalMet: boolean;
   onDismiss: () => void;
 };
 
-export function CelebrationModal({ visible, durationMinutes, onDismiss }: Props) {
+export function CelebrationModal({ visible, durationMinutes, goalMet, onDismiss }: Props) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  const messageIndex = useRef(Math.floor(Math.random() * MESSAGES.length)).current;
-  const message = MESSAGES[messageIndex];
+  const successIndex = useRef(Math.floor(Math.random() * SUCCESS_MESSAGES.length)).current;
+  const encourageIndex = useRef(Math.floor(Math.random() * ENCOURAGE_MESSAGES.length)).current;
+  const message = goalMet ? SUCCESS_MESSAGES[successIndex] : ENCOURAGE_MESSAGES[encourageIndex];
 
   const hours = Math.floor(durationMinutes / 60);
   const mins = durationMinutes % 60;
@@ -43,15 +52,15 @@ export function CelebrationModal({ visible, durationMinutes, onDismiss }: Props)
       <View style={styles.overlay}>
         <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
           {/* Confetti row */}
-          <Text style={styles.confetti}>🎊 ✨ 🎊</Text>
+          <Text style={styles.confetti}>{goalMet ? '🎊 ✨ 🎊' : ''}</Text>
 
           {/* Teddy */}
-          <View style={styles.teddyWrap}>
+          <View style={[styles.teddyWrap, !goalMet && styles.teddyWrapMissed]}>
             <Text style={styles.teddyEmoji}>🧸</Text>
           </View>
 
           {/* Stars */}
-          <Text style={styles.stars}>⭐ ⭐ ⭐</Text>
+          <Text style={styles.stars}>{goalMet ? '⭐ ⭐ ⭐' : ''}</Text>
 
           <Text style={styles.title}>{message.title}</Text>
           <Text style={styles.body}>{message.body}</Text>
@@ -60,11 +69,11 @@ export function CelebrationModal({ visible, durationMinutes, onDismiss }: Props)
           <View style={styles.badge}>
             <Text style={styles.badgeLabel}>You slept</Text>
             <Text style={styles.badgeValue}>{durationLabel}</Text>
-            <Text style={styles.badgeLabel}>tonight 🌙</Text>
+            <Text style={styles.badgeLabel}>tonight</Text>
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={onDismiss} activeOpacity={0.85}>
-            <Text style={styles.buttonText}>Awesome! 🎉</Text>
+          <TouchableOpacity style={[styles.button, !goalMet && styles.buttonMissed]} onPress={onDismiss} activeOpacity={0.85}>
+            <Text style={styles.buttonText}>{goalMet ? 'Awesome!' : 'Got it!'}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -104,6 +113,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: 3,
     borderColor: colors.gold + '66',
+  },
+  teddyWrapMissed: {
+    borderColor: colors.blue + '66',
   },
   teddyEmoji: {
     fontSize: 52,
@@ -153,6 +165,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xxl,
+  },
+  buttonMissed: {
+    backgroundColor: colors.blue,
   },
   buttonText: {
     fontSize: 18,
