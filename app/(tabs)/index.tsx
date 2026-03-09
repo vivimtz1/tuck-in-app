@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
-import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { useWindDown } from '@/contexts/WindDownContext';
+import { useSleepLog } from '@/contexts/SleepLogContext';
+import { CelebrationModal } from '@/components/CelebrationModal';
 
 type ScheduleItem = {
   id: string;
@@ -21,6 +22,8 @@ export default function HomeScreen() {
   const { getEnabledItems } = useWindDown();
   const enabledItems = getEnabledItems();
   const hasNoWindDownRoutine = enabledItems.length === 0;
+
+  const { activeSession, logBedtime, logWakeTime, lastEntry, celebration, dismissCelebration } = useSleepLog();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -295,6 +298,70 @@ export default function HomeScreen() {
           </View>
         </Card>
 
+        {/* Sleep Log Card */}
+        <Text style={styles.sectionTitle}>Log Your Sleep</Text>
+        <Card style={styles.sleepLogCard}>
+          {activeSession ? (
+            /* In bed — show wake up button */
+            <>
+              <View style={styles.sleepLogInBed}>
+                <Text style={styles.sleepLogEmoji}>😴</Text>
+                <View style={styles.sleepLogInBedText}>
+                  <Text style={styles.sleepLogInBedTitle}>Sleep well!</Text>
+                  <Text style={styles.sleepLogInBedSub}>
+                    Went to bed at{' '}
+                    {activeSession.bedtime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.wakeButton} onPress={logWakeTime}>
+                <Sun color={colors.dark} size={18} />
+                <Text style={styles.wakeButtonText}>Good Morning! I Just Woke Up ☀️</Text>
+              </TouchableOpacity>
+            </>
+          ) : lastEntry && lastEntry.durationMinutes > 0 ? (
+            /* Completed entry — show summary + option to log again */
+            <>
+              <View style={styles.sleepLogSummary}>
+                <View style={styles.sleepLogSummaryItem}>
+                  <Text style={styles.sleepLogSummaryValue}>
+                    {Math.floor(lastEntry.durationMinutes / 60)}h {lastEntry.durationMinutes % 60}m
+                  </Text>
+                  <Text style={styles.sleepLogSummaryLabel}>Last Night</Text>
+                </View>
+                <View style={styles.sleepLogDivider} />
+                <View style={styles.sleepLogSummaryItem}>
+                  <Text style={[styles.sleepLogSummaryValue, { color: lastEntry.goalMet ? colors.success : colors.warning }]}>
+                    {lastEntry.goalMet ? '✓ Goal Met' : '✗ Goal Missed'}
+                  </Text>
+                  <Text style={styles.sleepLogSummaryLabel}>7h target</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
+                <Moon color={colors.cream} size={16} />
+                <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            /* No active session, no recent entry */
+            <>
+              <Text style={styles.sleepLogPrompt}>
+                Tap when you're heading to bed or waking up — Teddy will track your sleep for you!
+              </Text>
+              <View style={styles.sleepLogButtons}>
+                <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
+                  <Moon color={colors.cream} size={16} />
+                  <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.wakeButtonOutline} onPress={logWakeTime}>
+                  <Sun color={colors.gold} size={16} />
+                  <Text style={styles.wakeButtonOutlineText}>Just Woke Up ☀️</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </Card>
+
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
         <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/winddown')}>
@@ -335,6 +402,12 @@ export default function HomeScreen() {
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
+
+      <CelebrationModal
+        visible={celebration}
+        durationMinutes={lastEntry?.durationMinutes ?? 0}
+        onDismiss={dismissCelebration}
+      />
     </SafeAreaView>
   );
 }
@@ -568,6 +641,111 @@ const styles = StyleSheet.create({
   windDownEmptyDescription: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  // Sleep Log Card
+  sleepLogCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+  },
+  sleepLogPrompt: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  sleepLogButtons: {
+    gap: spacing.sm,
+  },
+  bedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.brown,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+  },
+  bedButtonText: {
+    ...typography.body,
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+  },
+  wakeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.gold,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+  },
+  wakeButtonText: {
+    ...typography.body,
+    color: colors.dark,
+    fontFamily: 'Fredoka-Medium',
+  },
+  wakeButtonOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'transparent',
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.gold,
+  },
+  wakeButtonOutlineText: {
+    ...typography.body,
+    color: colors.gold,
+    fontFamily: 'Fredoka-Medium',
+  },
+  sleepLogInBed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  sleepLogEmoji: {
+    fontSize: 40,
+  },
+  sleepLogInBedText: {
+    flex: 1,
+  },
+  sleepLogInBedTitle: {
+    ...typography.h3,
+    color: colors.cream,
+    marginBottom: 2,
+  },
+  sleepLogInBedSub: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  sleepLogSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  sleepLogSummaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  sleepLogSummaryValue: {
+    ...typography.h3,
+    color: colors.blue,
+    marginBottom: 2,
+  },
+  sleepLogSummaryLabel: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  sleepLogDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.border,
+    marginHorizontal: spacing.md,
   },
   scheduleHeader: {
     flexDirection: 'row',
