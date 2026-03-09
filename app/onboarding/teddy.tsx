@@ -6,7 +6,7 @@ import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 
-const TEDDY_NAMES = ['Teddy', 'Snuggles', 'Cocoa', 'Patches', 'Honey', 'Buttons'];
+const TEDDY_NAMES = ['Teddy', 'Snuggles', 'Honey'];
 
 export default function TeddyScreen() {
   const [teddyName, setTeddyName] = useState('Teddy');

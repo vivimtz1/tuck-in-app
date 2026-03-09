@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, TextInput, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, TextInput, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight, X } from 'lucide-react-native';
@@ -170,7 +170,7 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Account</Text>
 
-        <TouchableOpacity style={styles.settingItem}>
+        <TouchableOpacity style={styles.settingItem} onPress={() => Alert.alert('Coming Soon', 'Account Details will be available in a future update.')}>
           <View style={styles.settingIcon}>
             <User color={colors.cream} size={20} />
           </View>
@@ -181,7 +181,7 @@ export default function ProfileScreen() {
           <ChevronRight color={colors.textMuted} size={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem}>
+        <TouchableOpacity style={styles.settingItem} onPress={() => Alert.alert('Coming Soon', 'Privacy Settings will be available in a future update.')}>
           <View style={styles.settingIcon}>
             <Lock color={colors.textSecondary} size={20} />
           </View>
@@ -194,7 +194,7 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Support</Text>
 
-        <TouchableOpacity style={styles.settingItem}>
+        <TouchableOpacity style={styles.settingItem} onPress={() => Alert.alert('Coming Soon', 'Help & Support will be available in a future update.')}>
           <View style={styles.settingIcon}>
             <HelpCircle color={colors.blue} size={20} />
           </View>
@@ -205,7 +205,7 @@ export default function ProfileScreen() {
           <ChevronRight color={colors.textMuted} size={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.settingItem, styles.logoutItem]}>
+        <TouchableOpacity style={[styles.settingItem, styles.logoutItem]} onPress={() => router.replace('/welcome')}>
           <View style={styles.settingIcon}>
             <LogOut color={colors.error} size={20} />
           </View>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { ArrowLeft, Moon, Sun, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { Card } from '@/components/Card';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTES = ['00', '15', '30', '45'];
@@ -77,8 +78,18 @@ function TimePicker({ value, onChange, label, icon }: TimePickerProps) {
 }
 
 export default function ScheduleScreen() {
-  const [bedtime, setBedtime] = useState({ hour: 11, minute: '00', period: 'PM' });
-  const [wakeTime, setWakeTime] = useState({ hour: 7, minute: '30', period: 'AM' });
+  const { currentBedtime, setCurrentBedtime, currentWakeTime, setCurrentWakeTime } = useOnboarding();
+  const [bedtime, setBedtime] = useState(currentBedtime);
+  const [wakeTime, setWakeTime] = useState(currentWakeTime);
+
+  // Update context when local state changes
+  useEffect(() => {
+    setCurrentBedtime(bedtime);
+  }, [bedtime]);
+
+  useEffect(() => {
+    setCurrentWakeTime(wakeTime);
+  }, [wakeTime]);
 
   const calculateSleepDuration = () => {
     let bedHour = bedtime.hour;
@@ -126,9 +137,9 @@ export default function ScheduleScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.step}>Step 2 of 4</Text>
-          <Text style={styles.title}>Set Your Sleep Schedule</Text>
+          <Text style={styles.title}>What's Your Current Sleep Schedule?</Text>
           <Text style={styles.subtitle}>
-            Choose your ideal bedtime and wake time.{'\n'}We recommend 7-9 hours of sleep.
+            Tell us your regular bedtime and wake time.{'\n'}Don't factor in unusual circumstances — just your typical routine.
           </Text>
 
           <Card style={styles.scheduleCard}>
@@ -150,22 +161,22 @@ export default function ScheduleScreen() {
           </Card>
 
           <View style={[styles.durationCard, isRecommendedDuration && styles.durationCardGood]}>
-            <Text style={styles.durationLabel}>Sleep Duration</Text>
+            <Text style={styles.durationLabel}>Current Sleep Duration</Text>
             <Text style={styles.durationValue}>
               {duration.hours}h {duration.minutes}m
             </Text>
             <Text style={[styles.durationHint, isRecommendedDuration && styles.durationHintGood]}>
               {isRecommendedDuration
-                ? '✓ Perfect! This is within the recommended range.'
-                : 'Try adjusting for 7-9 hours of sleep.'}
+                ? '✓ Great! You\'re getting the recommended 7-9 hours.'
+                : 'The recommended range is 7-9 hours of sleep.'}
             </Text>
           </View>
 
           <View style={styles.tipCard}>
             <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>Consistency is key!</Text>
+              <Text style={styles.tipTitle}>Why we're asking</Text>
               <Text style={styles.tipText}>
-                Sticking to the same bedtime helps regulate your body's internal clock.
+                Understanding your current habits helps us personalize your sleep journey. You'll set your ideal schedule later in the app.
               </Text>
             </View>
           </View>
