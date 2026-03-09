@@ -12,6 +12,7 @@ import { SplashScreen } from 'expo-router';
 import { colors } from '@/constants/theme';
 import { WindDownProvider } from '@/contexts/WindDownContext';
 import { SleepLogProvider } from '@/contexts/SleepLogContext';
+import { OnboardingProvider } from '@/contexts/OnboardingContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +36,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <OnboardingProvider>
       <WindDownProvider>
         <SleepLogProvider>
         <Stack
@@ -57,6 +59,7 @@ export default function RootLayout() {
         <StatusBar style="light" />
         </SleepLogProvider>
       </WindDownProvider>
+      </OnboardingProvider>
     </GestureHandlerRootView>
   );
 }

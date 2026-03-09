@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil } from 'lucide-react-native';
+import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, X } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { router } from 'expo-router';
@@ -19,6 +19,10 @@ type ScheduleItem = {
 export default function HomeScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [editingTime, setEditingTime] = useState<'bedtime' | 'wake'>('bedtime');
+  const [tonightBedtime, setTonightBedtime] = useState({ hour: 11, minute: '00', period: 'PM' });
+  const [tonightWakeTime, setTonightWakeTime] = useState({ hour: 7, minute: '30', period: 'AM' });
   const { getEnabledItems } = useWindDown();
   const enabledItems = getEnabledItems();
   const hasNoWindDownRoutine = enabledItems.length === 0;
@@ -31,8 +35,8 @@ export default function HomeScreen() {
   }, []);
 
   // TODO: Fetch from Supabase - for now using defaults
-  const bedtime = '11:00 PM';
-  const wakeTime = '7:30 AM';
+  const bedtime = `${tonightBedtime.hour}:${tonightBedtime.minute} ${tonightBedtime.period}`;
+  const wakeTime = `${tonightWakeTime.hour}:${tonightWakeTime.minute} ${tonightWakeTime.period}`;
   const lastNightSleep = { hours: 7, minutes: 33 };
   const sleepQuality = 8;
 
@@ -119,6 +123,89 @@ export default function HomeScreen() {
 
   // Check if item is next
   const isNext = (item: ScheduleItem) => item === nextItem;
+
+  // Time adjustment helpers
+  const MINUTES = ['00', '15', '30', '45'];
+
+  // Calculate sleep duration in minutes
+  const calculateSleepDuration = () => {
+    let bedHour = tonightBedtime.hour;
+    if (tonightBedtime.period === 'PM' && bedHour !== 12) bedHour += 12;
+    if (tonightBedtime.period === 'AM' && bedHour === 12) bedHour = 0;
+
+    let wakeHour = tonightWakeTime.hour;
+    if (tonightWakeTime.period === 'PM' && wakeHour !== 12) wakeHour += 12;
+    if (tonightWakeTime.period === 'AM' && wakeHour === 12) wakeHour = 0;
+
+    const bedMinutes = bedHour * 60 + parseInt(tonightBedtime.minute);
+    let wakeMinutes = wakeHour * 60 + parseInt(tonightWakeTime.minute);
+
+    // If wake time is before bedtime, it's the next day
+    if (wakeMinutes <= bedMinutes) {
+      wakeMinutes += 24 * 60;
+    }
+
+    return wakeMinutes - bedMinutes;
+  };
+
+  const sleepDurationMinutes = calculateSleepDuration();
+  const sleepDurationHours = Math.floor(sleepDurationMinutes / 60);
+  const sleepDurationMins = sleepDurationMinutes % 60;
+
+  // Validation: sleep should be between 3 and 14 hours
+  const isValidSleepDuration = sleepDurationMinutes >= 180 && sleepDurationMinutes <= 840;
+  const getValidationError = () => {
+    if (sleepDurationMinutes < 180) {
+      return 'Sleep duration is less than 3 hours. Please adjust your times.';
+    }
+    if (sleepDurationMinutes > 840) {
+      return 'Sleep duration is more than 14 hours. Please adjust your times.';
+    }
+    return null;
+  };
+  const validationError = getValidationError();
+  
+  const getCurrentEditTime = () => editingTime === 'bedtime' ? tonightBedtime : tonightWakeTime;
+  const setCurrentEditTime = (value: { hour: number; minute: string; period: string }) => {
+    if (editingTime === 'bedtime') {
+      setTonightBedtime(value);
+    } else {
+      setTonightWakeTime(value);
+    }
+  };
+
+  const adjustHour = (delta: number) => {
+    const current = getCurrentEditTime();
+    let newHour = current.hour + delta;
+    if (newHour > 12) newHour = 1;
+    if (newHour < 1) newHour = 12;
+    setCurrentEditTime({ ...current, hour: newHour });
+  };
+
+  const adjustMinute = (delta: number) => {
+    const current = getCurrentEditTime();
+    const currentIndex = MINUTES.indexOf(current.minute);
+    let newIndex = currentIndex + delta;
+    if (newIndex >= MINUTES.length) newIndex = 0;
+    if (newIndex < 0) newIndex = MINUTES.length - 1;
+    setCurrentEditTime({ ...current, minute: MINUTES[newIndex] });
+  };
+
+  const togglePeriod = () => {
+    const current = getCurrentEditTime();
+    setCurrentEditTime({ ...current, period: current.period === 'PM' ? 'AM' : 'PM' });
+  };
+
+  const openTimeEditor = (type: 'bedtime' | 'wake') => {
+    setEditingTime(type);
+    setShowTimeModal(true);
+  };
+
+  const handleModalDone = () => {
+    if (isValidSleepDuration) {
+      setShowTimeModal(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -267,36 +354,28 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.scheduleRow}>
-          <View style={styles.scheduleItem}>
+          <TouchableOpacity 
+            style={styles.scheduleItem}
+            onPress={() => openTimeEditor('bedtime')}
+            activeOpacity={0.7}
+          >
             <Moon color={colors.cream} size={28} />
             <Text style={styles.scheduleTime}>{bedtime}</Text>
             <Text style={styles.scheduleLabel}>Bedtime</Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.divider} />
 
-          <View style={styles.scheduleItem}>
+          <TouchableOpacity 
+            style={styles.scheduleItem}
+            onPress={() => openTimeEditor('wake')}
+            activeOpacity={0.7}
+          >
             <Sun color={colors.gold} size={28} />
             <Text style={styles.scheduleTime}>{wakeTime}</Text>
             <Text style={styles.scheduleLabel}>Wake Up</Text>
-          </View>
+          </TouchableOpacity>
         </View>
-
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Last Night</Text>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {lastNightSleep.hours}h {lastNightSleep.minutes}m
-              </Text>
-              <Text style={styles.summaryLabel}>Sleep Duration</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{sleepQuality}/10</Text>
-              <Text style={styles.summaryLabel}>Sleep Quality</Text>
-            </View>
-          </View>
-        </Card>
 
         {/* Sleep Log Card */}
         <Text style={styles.sectionTitle}>Log Your Sleep</Text>
@@ -305,7 +384,6 @@ export default function HomeScreen() {
             /* In bed — show wake up button */
             <>
               <View style={styles.sleepLogInBed}>
-                <Text style={styles.sleepLogEmoji}>😴</Text>
                 <View style={styles.sleepLogInBedText}>
                   <Text style={styles.sleepLogInBedTitle}>Sleep well!</Text>
                   <Text style={styles.sleepLogInBedSub}>
@@ -316,7 +394,7 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity style={styles.wakeButton} onPress={logWakeTime}>
                 <Sun color={colors.dark} size={18} />
-                <Text style={styles.wakeButtonText}>Good Morning! I Just Woke Up ☀️</Text>
+                <Text style={styles.wakeButtonText}>Good Morning! I Just Woke Up</Text>
               </TouchableOpacity>
             </>
           ) : lastEntry && lastEntry.durationMinutes > 0 ? (
@@ -338,8 +416,8 @@ export default function HomeScreen() {
                 </View>
               </View>
               <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
-                <Moon color={colors.cream} size={16} />
-                <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+                <Moon color={colors.dark} size={16} />
+                <Text style={styles.bedButtonText}>Going to Bed</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -350,17 +428,35 @@ export default function HomeScreen() {
               </Text>
               <View style={styles.sleepLogButtons}>
                 <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
-                  <Moon color={colors.cream} size={16} />
-                  <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+                  <Moon color={colors.dark} size={16} />
+                  <Text style={styles.bedButtonText}>Going to Bed</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.wakeButtonOutline} onPress={logWakeTime}>
                   <Sun color={colors.gold} size={16} />
-                  <Text style={styles.wakeButtonOutlineText}>Just Woke Up ☀️</Text>
+                  <Text style={styles.wakeButtonOutlineText}>Just Woke Up</Text>
                 </TouchableOpacity>
               </View>
             </>
           )}
         </Card>
+
+        <TouchableOpacity onPress={() => router.push('/(tabs)/progress')} activeOpacity={0.7}>
+          <Card style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Last Night</Text>
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryValue}>
+                  {lastNightSleep.hours}h {lastNightSleep.minutes}m
+                </Text>
+                <Text style={styles.summaryLabel}>Sleep Duration</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryValue}>{sleepQuality}/10</Text>
+                <Text style={styles.summaryLabel}>Sleep Quality</Text>
+              </View>
+            </View>
+          </Card>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
@@ -406,8 +502,88 @@ export default function HomeScreen() {
       <CelebrationModal
         visible={celebration}
         durationMinutes={lastEntry?.durationMinutes ?? 0}
+        goalMet={lastEntry?.goalMet ?? false}
         onDismiss={dismissCelebration}
       />
+
+      {/* Time Adjustment Modal */}
+      <Modal
+        visible={showTimeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTimeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingTime === 'bedtime' ? 'Tonight\'s Bedtime' : 'Tomorrow\'s Wake Time'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowTimeModal(false)} style={styles.modalClose}>
+                <X color={colors.textMuted} size={24} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.timePickerRow}>
+              <View style={styles.timeColumn}>
+                <TouchableOpacity onPress={() => adjustHour(1)} style={styles.arrowButton}>
+                  <ChevronUp color={colors.textSecondary} size={28} />
+                </TouchableOpacity>
+                <Text style={styles.timeValue}>{getCurrentEditTime().hour}</Text>
+                <TouchableOpacity onPress={() => adjustHour(-1)} style={styles.arrowButton}>
+                  <ChevronDown color={colors.textSecondary} size={28} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.timeSeparator}>:</Text>
+
+              <View style={styles.timeColumn}>
+                <TouchableOpacity onPress={() => adjustMinute(1)} style={styles.arrowButton}>
+                  <ChevronUp color={colors.textSecondary} size={28} />
+                </TouchableOpacity>
+                <Text style={styles.timeValue}>{getCurrentEditTime().minute}</Text>
+                <TouchableOpacity onPress={() => adjustMinute(-1)} style={styles.arrowButton}>
+                  <ChevronDown color={colors.textSecondary} size={28} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity onPress={togglePeriod} style={styles.periodButton}>
+                <Text style={styles.periodText}>{getCurrentEditTime().period}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sleepDurationPreview}>
+              <Text style={styles.sleepDurationLabel}>Sleep Duration</Text>
+              <Text style={[
+                styles.sleepDurationValue,
+                !isValidSleepDuration && styles.sleepDurationValueError
+              ]}>
+                {sleepDurationHours}h {sleepDurationMins}m
+              </Text>
+            </View>
+
+            {validationError && (
+              <View style={styles.validationError}>
+                <Text style={styles.validationErrorText}>{validationError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity 
+              style={[
+                styles.modalDoneButton,
+                !isValidSleepDuration && styles.modalDoneButtonDisabled
+              ]} 
+              onPress={handleModalDone}
+              disabled={!isValidSleepDuration}
+            >
+              <Text style={[
+                styles.modalDoneText,
+                !isValidSleepDuration && styles.modalDoneTextDisabled
+              ]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -663,13 +839,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.brown,
+    backgroundColor: colors.gold,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
   },
   bedButtonText: {
     ...typography.body,
-    color: colors.cream,
+    color: colors.dark,
     fontFamily: 'Fredoka-Medium',
   },
   wakeButton: {
@@ -853,5 +1029,117 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.blue,
     fontFamily: 'Fredoka-Medium',
+  },
+  // Time adjustment modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.cream,
+  },
+  modalClose: {
+    padding: spacing.xs,
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  timeColumn: {
+    alignItems: 'center',
+    width: 70,
+  },
+  arrowButton: {
+    padding: spacing.sm,
+  },
+  timeValue: {
+    fontSize: 48,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.cream,
+  },
+  timeSeparator: {
+    fontSize: 48,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.cream,
+    marginBottom: 16,
+  },
+  periodButton: {
+    backgroundColor: colors.blue,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    marginLeft: spacing.sm,
+  },
+  periodText: {
+    ...typography.body,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.dark,
+  },
+  modalDoneButton: {
+    backgroundColor: colors.cream,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  modalDoneButtonDisabled: {
+    backgroundColor: colors.border,
+  },
+  modalDoneText: {
+    ...typography.body,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.dark,
+  },
+  modalDoneTextDisabled: {
+    color: colors.textMuted,
+  },
+  sleepDurationPreview: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+  },
+  sleepDurationLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  sleepDurationValue: {
+    ...typography.h3,
+    color: colors.success,
+  },
+  sleepDurationValueError: {
+    color: colors.error,
+  },
+  validationError: {
+    backgroundColor: colors.error + '20',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  validationErrorText: {
+    ...typography.caption,
+    color: colors.error,
+    textAlign: 'center',
   },
 });
