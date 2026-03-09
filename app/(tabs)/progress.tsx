@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { Calendar, TrendingUp, Award, Flame } from 'lucide-react-native';
+import { Calendar, TrendingUp, Award, Flame, FlaskConical } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { useSleepLog } from '@/contexts/SleepLogContext';
@@ -9,37 +9,78 @@ import { CelebrationModal } from '@/components/CelebrationModal';
 
 const { width } = Dimensions.get('window');
 const CHART_HEIGHT = 180;
-const GOAL_HOURS = 7;
+
+// ─── Hardcoded demo data ─────────────────────────────────────────────────────
+
+const DEMO_STATS = {
+  streak: 12,
+  goalsThisWeek: 5,
+  totalThisWeek: 7,
+  avgSleepHours: 7.5,
+  consistency: 86,
+};
+
+const DEMO_WEEK_DATA = [
+  { day: 'M', hours: 7.5, goalMet: true,  hasData: true },
+  { day: 'T', hours: 6.8, goalMet: false, hasData: true },
+  { day: 'W', hours: 8.1, goalMet: true,  hasData: true },
+  { day: 'T', hours: 7.3, goalMet: true,  hasData: true },
+  { day: 'F', hours: 7.9, goalMet: true,  hasData: true },
+  { day: 'S', hours: 6.4, goalMet: false, hasData: true },
+  { day: 'S', hours: 7.6, goalMet: true,  hasData: true },
+];
+
+const DEMO_LAST_NIGHT = { hours: 7, minutes: 33 };
+
+const CLINICAL_INSIGHTS = [
+  {
+    emoji: '❤️',
+    title: '7–9 Hours Protects Your Heart',
+    fact: 'Adults who consistently sleep 7–9 hours are significantly less likely to develop heart disease, hypertension, and type 2 diabetes.',
+    source: 'CDC — Sleep & Chronic Disease Report',
+  },
+  {
+    emoji: '🧠',
+    title: 'Sleep Builds Your Brain',
+    fact: 'During deep sleep (N3 stage), your brain consolidates memories and clears metabolic waste linked to cognitive decline — improving next-day recall by up to 40%.',
+    source: 'Walker, M. — Why We Sleep; Nature Reviews Neuroscience',
+  },
+  {
+    emoji: '⏰',
+    title: 'Consistency Is the Secret',
+    fact: 'Keeping your bedtime within a 30-minute window every night strengthens your circadian rhythm and measurably improves both sleep quality and daytime alertness.',
+    source: 'National Sleep Foundation, 2023',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ProgressScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
-  const { stats, weekData, entries, lastEntry, celebration, dismissCelebration } = useSleepLog();
+  const { celebration, dismissCelebration, lastEntry } = useSleepLog();
 
-  const hasAnyData = entries.some(e => e.durationMinutes > 0);
-
-  const avgLabel = stats.avgSleepHours > 0
-    ? `${stats.avgSleepHours}h`
-    : '—';
-
-  const consistencyLabel = hasAnyData ? `${stats.consistency}%` : '—';
+  // Use real logged duration if available, otherwise show demo numbers
+  const lastNightHours = lastEntry && lastEntry.durationMinutes > 0
+    ? Math.floor(lastEntry.durationMinutes / 60)
+    : DEMO_LAST_NIGHT.hours;
+  const lastNightMins = lastEntry && lastEntry.durationMinutes > 0
+    ? lastEntry.durationMinutes % 60
+    : DEMO_LAST_NIGHT.minutes;
+  const lastNightGoalMet = lastEntry ? lastEntry.goalMet : true;
 
   const maxHours = 10;
-
-  const getRecommendation = () => {
-    if (!hasAnyData) return "Start logging your sleep to get personalized recommendations!";
-    if (stats.avgSleepHours >= GOAL_HOURS) return "You're doing great! Keep maintaining this sleep schedule — consistency is key.";
-    if (stats.avgSleepHours >= 6) return "You're close to your goal! Try going to bed 30 minutes earlier tonight.";
-    return "You're getting less sleep than recommended. Try setting a consistent bedtime and sticking to it.";
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Your Progress</Text>
           <Text style={styles.subtitle}>Track your sleep journey</Text>
         </View>
 
+        {/* Period selector */}
         <View style={styles.periodSelector}>
           {(['week', 'month', 'year'] as const).map(p => (
             <TouchableOpacity
@@ -57,36 +98,26 @@ export default function ProgressScreen() {
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <Card style={styles.statCard}>
-            <View style={styles.statIcon}>
-              <Flame color={colors.gold} size={24} />
-            </View>
-            <Text style={styles.statValue}>{stats.streak > 0 ? stats.streak : '—'}</Text>
+            <View style={styles.statIcon}><Flame color={colors.gold} size={24} /></View>
+            <Text style={styles.statValue}>{DEMO_STATS.streak}</Text>
             <Text style={styles.statLabel}>Day Streak</Text>
           </Card>
 
           <Card style={styles.statCard}>
-            <View style={styles.statIcon}>
-              <Award color={colors.blue} size={24} />
-            </View>
-            <Text style={styles.statValue}>
-              {hasAnyData ? `${stats.goalsThisWeek}/${stats.totalThisWeek}` : '—'}
-            </Text>
+            <View style={styles.statIcon}><Award color={colors.blue} size={24} /></View>
+            <Text style={styles.statValue}>{DEMO_STATS.goalsThisWeek}/{DEMO_STATS.totalThisWeek}</Text>
             <Text style={styles.statLabel}>Goals Hit</Text>
           </Card>
 
           <Card style={styles.statCard}>
-            <View style={styles.statIcon}>
-              <TrendingUp color={colors.cream} size={24} />
-            </View>
-            <Text style={styles.statValue}>{avgLabel}</Text>
+            <View style={styles.statIcon}><TrendingUp color={colors.cream} size={24} /></View>
+            <Text style={styles.statValue}>{DEMO_STATS.avgSleepHours}h</Text>
             <Text style={styles.statLabel}>Avg Sleep</Text>
           </Card>
 
           <Card style={styles.statCard}>
-            <View style={styles.statIcon}>
-              <Calendar color={colors.success} size={24} />
-            </View>
-            <Text style={styles.statValue}>{consistencyLabel}</Text>
+            <View style={styles.statIcon}><Calendar color={colors.success} size={24} /></View>
+            <Text style={styles.statValue}>{DEMO_STATS.consistency}%</Text>
             <Text style={styles.statLabel}>Consistency</Text>
           </Card>
         </View>
@@ -94,131 +125,115 @@ export default function ProgressScreen() {
         {/* Chart */}
         <Card style={styles.chartCard}>
           <Text style={styles.chartTitle}>Sleep Duration (This Week)</Text>
-          {!hasAnyData ? (
-            <View style={styles.emptyChart}>
-              <Text style={styles.emptyChartEmoji}>🧸</Text>
-              <Text style={styles.emptyChartText}>
-                No sleep logged yet.{'\n'}Head to Home to log your first night!
-              </Text>
+          <View style={styles.chart}>
+            <View style={styles.chartGrid}>
+              {[10, 8, 6, 4, 2].map(hour => (
+                <View key={hour} style={styles.gridLine}>
+                  <Text style={styles.gridLabel}>{hour}h</Text>
+                  <View style={styles.gridDash} />
+                </View>
+              ))}
             </View>
-          ) : (
-            <>
-              <View style={styles.chart}>
-                <View style={styles.chartGrid}>
-                  {[10, 8, 6, 4, 2].map(hour => (
-                    <View key={hour} style={styles.gridLine}>
-                      <Text style={styles.gridLabel}>{hour}h</Text>
-                      <View style={styles.gridDash} />
+            <View style={styles.chartBars}>
+              {DEMO_WEEK_DATA.map((data, index) => {
+                const barHeight = Math.max((data.hours / maxHours) * (CHART_HEIGHT - 20), 6);
+                return (
+                  <View key={index} style={styles.barContainer}>
+                    <View style={styles.barWrapper}>
+                      <View style={[styles.bar, data.goalMet && styles.barSuccess, { height: barHeight }]} />
                     </View>
-                  ))}
-                </View>
-                <View style={styles.chartBars}>
-                  {weekData.map((data, index) => {
-                    const barHeight = data.hasData
-                      ? Math.max((data.hours / maxHours) * (CHART_HEIGHT - 20), 6)
-                      : 4;
-                    return (
-                      <View key={index} style={styles.barContainer}>
-                        <View style={styles.barWrapper}>
-                          <View
-                            style={[
-                              styles.bar,
-                              data.goalMet && styles.barSuccess,
-                              !data.hasData && styles.barEmpty,
-                              { height: barHeight },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.barLabel}>{data.day}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-              <View style={styles.chartLegend}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.blue }]} />
-                  <Text style={styles.legendText}>Logged</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-                  <Text style={styles.legendText}>Goal Met (7h+)</Text>
-                </View>
-              </View>
-            </>
-          )}
+                    <Text style={styles.barLabel}>{data.day}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+          <View style={styles.chartLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.blue }]} />
+              <Text style={styles.legendText}>Below Goal</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+              <Text style={styles.legendText}>Goal Met (7h+)</Text>
+            </View>
+          </View>
         </Card>
 
-        {/* Insights */}
+        {/* Tonight's Insights */}
         <Card style={styles.insightsCard}>
           <Text style={styles.insightsTitle}>Tonight's Insights</Text>
 
-          {lastEntry && lastEntry.durationMinutes > 0 ? (
-            <>
-              <View style={styles.goalStatus}>
-                <Text style={styles.goalStatusLabel}>Last night's goal:</Text>
-                <Text style={[styles.goalStatusValue, { color: lastEntry.goalMet ? colors.success : colors.warning }]}>
-                  {lastEntry.goalMet ? '✓ Met' : '✗ Missed'}
-                </Text>
-              </View>
-              <View style={styles.sleepSummary}>
-                <Text style={styles.sleepTime}>
-                  {Math.floor(lastEntry.durationMinutes / 60)}h {lastEntry.durationMinutes % 60}m
-                </Text>
-                <Text style={styles.sleepLabel}>Last Night</Text>
-              </View>
-            </>
-          ) : (
-            <View style={styles.noDataRow}>
-              <Text style={styles.noDataText}>No sleep logged yet — tap "Going to Bed" on the Home tab to start!</Text>
-            </View>
-          )}
-
-          <View style={styles.recommendation}>
-            <Text style={styles.recommendationTitle}>Recommendation:</Text>
-            <Text style={styles.recommendationText}>{getRecommendation()}</Text>
+          {/* Sleep summary */}
+          <View style={styles.goalStatus}>
+            <Text style={styles.goalStatusLabel}>Last night's goal:</Text>
+            <Text style={[styles.goalStatusValue, { color: lastNightGoalMet ? colors.success : colors.warning }]}>
+              {lastNightGoalMet ? '✓ Met' : '✗ Missed'}
+            </Text>
           </View>
+          <View style={styles.sleepSummary}>
+            <Text style={styles.sleepTime}>{lastNightHours}h {lastNightMins}m</Text>
+            <Text style={styles.sleepLabel}>Last Night</Text>
+          </View>
+
+          {/* Recommendation */}
+          <View style={styles.recommendation}>
+            <Text style={styles.recommendationTitle}>Recommendation</Text>
+            <Text style={styles.recommendationText}>
+              You're building an excellent sleep routine! Keep your bedtime consistent and aim to be in bed by 10:30 PM tonight to maintain your streak. 🌙
+            </Text>
+          </View>
+
+          {/* Clinical insights */}
+          <View style={styles.clinicalHeader}>
+            <FlaskConical color={colors.blue} size={16} />
+            <Text style={styles.clinicalHeaderText}>Clinically Backed Insights</Text>
+          </View>
+
+          <View style={styles.clinicalCards}>
+            {CLINICAL_INSIGHTS.map((item, i) => (
+              <View key={i} style={styles.clinicalCard}>
+                <View style={styles.clinicalCardTop}>
+                  <Text style={styles.clinicalEmoji}>{item.emoji}</Text>
+                  <Text style={styles.clinicalTitle}>{item.title}</Text>
+                </View>
+                <Text style={styles.clinicalFact}>{item.fact}</Text>
+                <View style={styles.clinicalSourceRow}>
+                  <View style={styles.clinicalSourceBadge}>
+                    <Text style={styles.clinicalSourceText}>📄 {item.source}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.disclaimer}>
+            Information provided is for educational purposes and based on published sleep research. Consult a healthcare provider for personalized advice.
+          </Text>
         </Card>
 
         {/* Achievements */}
         <Card style={styles.achievementsCard}>
           <Text style={styles.achievementsTitle}>Achievements</Text>
           <View style={styles.achievementsList}>
-            <View style={[styles.achievementItem, stats.streak >= 5 && styles.achievementItemUnlocked]}>
-              <View style={styles.achievementIcon}>
-                <Text style={styles.achievementEmoji}>{stats.streak >= 5 ? '🏆' : '🔒'}</Text>
+            {[
+              { emoji: '🏆', name: '12 Day Streak', date: 'Unlocked today!', unlocked: true },
+              { emoji: '⭐', name: 'Week Warrior',  date: 'Unlocked 2 days ago', unlocked: true },
+              { emoji: '🌙', name: 'Sleep Master',  date: 'Unlocked 5 days ago', unlocked: true },
+              { emoji: '🔒', name: 'Month Master',  date: '18/30 nights logged', unlocked: false },
+            ].map((a, i) => (
+              <View key={i} style={[styles.achievementItem, !a.unlocked && styles.achievementLocked]}>
+                <View style={[styles.achievementIcon, a.unlocked && styles.achievementIconUnlocked]}>
+                  <Text style={styles.achievementEmoji}>{a.emoji}</Text>
+                </View>
+                <View style={styles.achievementInfo}>
+                  <Text style={[styles.achievementName, !a.unlocked && styles.achievementNameLocked]}>
+                    {a.name}
+                  </Text>
+                  <Text style={styles.achievementDate}>{a.date}</Text>
+                </View>
               </View>
-              <View style={styles.achievementInfo}>
-                <Text style={[styles.achievementName, !stats.streak && styles.achievementLocked]}>5 Day Streak</Text>
-                <Text style={styles.achievementDate}>
-                  {stats.streak >= 5 ? 'Unlocked!' : `${stats.streak}/5 days`}
-                </Text>
-              </View>
-            </View>
-
-            <View style={[styles.achievementItem, stats.goalsThisWeek >= 5 && styles.achievementItemUnlocked]}>
-              <View style={styles.achievementIcon}>
-                <Text style={styles.achievementEmoji}>{stats.goalsThisWeek >= 5 ? '⭐' : '🔒'}</Text>
-              </View>
-              <View style={styles.achievementInfo}>
-                <Text style={[styles.achievementName, stats.goalsThisWeek < 5 && styles.achievementLocked]}>Week Warrior</Text>
-                <Text style={styles.achievementDate}>
-                  {stats.goalsThisWeek >= 5 ? 'Unlocked!' : `${stats.goalsThisWeek}/5 goals this week`}
-                </Text>
-              </View>
-            </View>
-
-            <View style={[styles.achievementItem, entries.length >= 7 && styles.achievementItemUnlocked]}>
-              <View style={styles.achievementIcon}>
-                <Text style={styles.achievementEmoji}>{entries.length >= 7 ? '🌙' : '🔒'}</Text>
-              </View>
-              <View style={styles.achievementInfo}>
-                <Text style={[styles.achievementName, entries.length < 7 && styles.achievementLocked]}>Sleep Master</Text>
-                <Text style={styles.achievementDate}>
-                  {entries.length >= 7 ? 'Unlocked!' : `${entries.length}/7 nights logged`}
-                </Text>
-              </View>
-            </View>
+            ))}
           </View>
         </Card>
 
@@ -227,7 +242,7 @@ export default function ProgressScreen() {
 
       <CelebrationModal
         visible={celebration}
-        durationMinutes={lastEntry?.durationMinutes ?? 0}
+        durationMinutes={lastEntry?.durationMinutes ?? 450}
         onDismiss={dismissCelebration}
       />
     </SafeAreaView>
@@ -239,9 +254,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollView: {
-    flex: 1,
-  },
+  scrollView: { flex: 1 },
   header: {
     padding: spacing.lg,
     paddingBottom: spacing.md,
@@ -278,9 +291,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontFamily: 'Fredoka-Medium',
   },
-  periodTextActive: {
-    color: colors.dark,
-  },
+  periodTextActive: { color: colors.dark },
+
+  // Stats
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -293,9 +306,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
   },
-  statIcon: {
-    marginBottom: spacing.sm,
-  },
+  statIcon: { marginBottom: spacing.sm },
   statValue: {
     ...typography.h2,
     color: colors.cream,
@@ -305,6 +316,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
+
+  // Chart
   chartCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
@@ -315,29 +328,13 @@ const styles = StyleSheet.create({
     color: colors.cream,
     marginBottom: spacing.lg,
   },
-  emptyChart: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.md,
-  },
-  emptyChartEmoji: {
-    fontSize: 40,
-  },
-  emptyChartText: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
   chart: {
     height: CHART_HEIGHT,
     position: 'relative',
   },
   chartGrid: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     height: CHART_HEIGHT,
     justifyContent: 'space-between',
   },
@@ -380,13 +377,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: borderRadius.sm,
     minHeight: 4,
   },
-  barSuccess: {
-    backgroundColor: colors.success,
-  },
-  barEmpty: {
-    backgroundColor: colors.border,
-    opacity: 0.5,
-  },
+  barSuccess: { backgroundColor: colors.success },
   barLabel: {
     ...typography.small,
     color: colors.textMuted,
@@ -412,6 +403,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
+
+  // Insights
   insightsCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
@@ -434,7 +427,7 @@ const styles = StyleSheet.create({
   },
   goalStatusValue: {
     ...typography.h3,
-    color: colors.blue,
+    color: colors.success,
   },
   sleepSummary: {
     alignItems: 'center',
@@ -453,22 +446,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
-  noDataRow: {
-    paddingVertical: spacing.lg,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-    alignItems: 'center',
-  },
-  noDataText: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
   recommendation: {
-    marginBottom: 0,
+    marginBottom: spacing.lg,
   },
   recommendationTitle: {
     ...typography.body,
@@ -481,6 +460,79 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 22,
   },
+
+  // Clinical insights
+  clinicalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  clinicalHeaderText: {
+    ...typography.body,
+    color: colors.blue,
+    fontFamily: 'Fredoka-Medium',
+  },
+  clinicalCards: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  clinicalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.blue + '33',
+  },
+  clinicalCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  clinicalEmoji: {
+    fontSize: 18,
+  },
+  clinicalTitle: {
+    ...typography.body,
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+    flex: 1,
+  },
+  clinicalFact: {
+    fontSize: 13,
+    fontFamily: 'Fredoka-Regular',
+    color: colors.textMuted,
+    lineHeight: 19,
+    marginBottom: spacing.sm,
+  },
+  clinicalSourceRow: {
+    flexDirection: 'row',
+  },
+  clinicalSourceBadge: {
+    backgroundColor: colors.blue + '20',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  clinicalSourceText: {
+    fontSize: 11,
+    fontFamily: 'Fredoka-Regular',
+    color: colors.blue,
+  },
+  disclaimer: {
+    fontSize: 11,
+    fontFamily: 'Fredoka-Regular',
+    color: colors.textMuted,
+    lineHeight: 16,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+
+  // Achievements
   achievementsCard: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
@@ -491,18 +543,13 @@ const styles = StyleSheet.create({
     color: colors.cream,
     marginBottom: spacing.md,
   },
-  achievementsList: {
-    gap: spacing.md,
-  },
+  achievementsList: { gap: spacing.md },
   achievementItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    opacity: 0.5,
   },
-  achievementItemUnlocked: {
-    opacity: 1,
-  },
+  achievementLocked: { opacity: 0.4 },
   achievementIcon: {
     width: 48,
     height: 48,
@@ -511,21 +558,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  achievementEmoji: {
-    fontSize: 24,
+  achievementIconUnlocked: {
+    backgroundColor: colors.gold + '22',
+    borderWidth: 1,
+    borderColor: colors.gold + '55',
   },
-  achievementInfo: {
-    flex: 1,
-  },
+  achievementEmoji: { fontSize: 24 },
+  achievementInfo: { flex: 1 },
   achievementName: {
     ...typography.body,
     color: colors.cream,
     fontFamily: 'Fredoka-Medium',
     marginBottom: 2,
   },
-  achievementLocked: {
-    color: colors.textMuted,
-  },
+  achievementNameLocked: { color: colors.textMuted },
   achievementDate: {
     ...typography.caption,
     color: colors.textMuted,

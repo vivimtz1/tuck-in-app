@@ -66,38 +66,21 @@ export function SleepLogProvider({ children }: { children: ReactNode }) {
       const durationMinutes = Math.round(
         (wakeTime.getTime() - activeSession.bedtime.getTime()) / (1000 * 60),
       );
-      const goalMet = durationMinutes >= GOAL_MINUTES;
       const newEntry: SleepEntry = {
         date: activeSession.date,
         bedtime: activeSession.bedtime,
         wakeTime,
         durationMinutes,
-        goalMet,
+        goalMet: true, // always celebrate for demo
       };
       setEntries(prev => {
         const without = prev.filter(e => e.date !== activeSession.date);
         return [...without, newEntry];
       });
       setActiveSession(null);
-      if (goalMet) setCelebration(true);
-    } else {
-      // Woke up without logging bedtime — store a partial entry (no duration)
-      // We still add it so progress can track consistency
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const nightDate = dateKey(yesterday);
-      const partial: SleepEntry = {
-        date: nightDate,
-        bedtime: wakeTime, // unknown, use wake as placeholder
-        wakeTime,
-        durationMinutes: 0,
-        goalMet: false,
-      };
-      setEntries(prev => {
-        if (prev.find(e => e.date === nightDate)) return prev;
-        return [...prev, partial];
-      });
     }
+    // Always show celebration when user wakes up
+    setCelebration(true);
   };
 
   const dismissCelebration = () => setCelebration(false);
