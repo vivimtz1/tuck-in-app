@@ -432,7 +432,7 @@ export default function HomeScreen() {
                   <Text style={styles.bedButtonText}>Going to Bed</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.wakeButtonOutline} onPress={logWakeTime}>
-                  <Sun color={colors.gold} size={16} />
+                  <Sun color={colors.cream} size={16} />
                   <Text style={styles.wakeButtonOutlineText}>Just Woke Up</Text>
                 </TouchableOpacity>
               </View>
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.cream,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
   },
@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.cream,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
   },
@@ -871,11 +871,11 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     borderWidth: 1,
-    borderColor: colors.gold,
+    borderColor: colors.cream,
   },
   wakeButtonOutlineText: {
     ...typography.body,
-    color: colors.gold,
+    color: colors.cream,
     fontFamily: 'Fredoka-Medium',
   },
   sleepLogInBed: {

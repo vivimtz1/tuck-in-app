@@ -13,6 +13,7 @@ import { colors } from '@/constants/theme';
 import { WindDownProvider } from '@/contexts/WindDownContext';
 import { SleepLogProvider } from '@/contexts/SleepLogContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
+import { AlarmRingerProvider } from '@/contexts/AlarmRingerContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,28 +38,30 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OnboardingProvider>
-      <WindDownProvider>
-        <SleepLogProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'slide_from_right',
-          }}
-        >
-        <Stack.Screen name="index" options={{ animation: 'none' }} />
-        <Stack.Screen name="welcome" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="checkin" />
-        <Stack.Screen name="schedule" />
-        <Stack.Screen name="winddown" />
-        <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="light" />
-        </SleepLogProvider>
-      </WindDownProvider>
+        <WindDownProvider>
+          <SleepLogProvider>
+            <AlarmRingerProvider>
+              <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                animation: 'slide_from_right',
+              }}
+            >
+              <Stack.Screen name="index" options={{ animation: 'none' }} />
+              <Stack.Screen name="welcome" />
+              <Stack.Screen name="login" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="checkin" />
+              <Stack.Screen name="schedule" />
+              <Stack.Screen name="winddown" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="light" />
+            </AlarmRingerProvider>
+          </SleepLogProvider>
+        </WindDownProvider>
       </OnboardingProvider>
     </GestureHandlerRootView>
   );
