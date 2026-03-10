@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { Calendar, TrendingUp, Award, Flame, FlaskConical } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Calendar, TrendingUp, Award, Flame, FlaskConical, ArrowLeft } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { useSleepLog } from '@/contexts/SleepLogContext';
@@ -56,6 +57,7 @@ const CLINICAL_INSIGHTS = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function ProgressScreen() {
+  const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
   const { celebration, dismissCelebration, lastEntry } = useSleepLog();
 
@@ -76,8 +78,17 @@ export default function ProgressScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Your Progress</Text>
-          <Text style={styles.subtitle}>Track your sleep journey</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <ArrowLeft color={colors.cream} size={24} />
+          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Your Progress</Text>
+            <Text style={styles.subtitle}>Track your sleep journey</Text>
+          </View>
         </View>
 
         {/* Period selector */}
@@ -256,8 +267,17 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  backButton: {
+    marginRight: spacing.md,
+    padding: spacing.xs,
+  },
+  headerText: {
+    flex: 1,
   },
   title: {
     ...typography.h1,

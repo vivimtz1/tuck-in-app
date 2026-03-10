@@ -13,6 +13,7 @@ import { colors } from '@/constants/theme';
 import { WindDownProvider } from '@/contexts/WindDownContext';
 import { SleepLogProvider } from '@/contexts/SleepLogContext';
 import { OnboardingProvider } from '@/contexts/OnboardingContext';
+import { AlarmRingerProvider } from '@/contexts/AlarmRingerContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,7 +40,8 @@ export default function RootLayout() {
       <OnboardingProvider>
         <WindDownProvider>
           <SleepLogProvider>
-            <Stack
+            <AlarmRingerProvider>
+              <Stack
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.background },
@@ -57,6 +59,7 @@ export default function RootLayout() {
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="light" />
+            </AlarmRingerProvider>
           </SleepLogProvider>
         </WindDownProvider>
       </OnboardingProvider>
