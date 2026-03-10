@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, TextInput, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight, X } from 'lucide-react-native';
+import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight, X, TrendingUp } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { router } from 'expo-router';
@@ -93,6 +93,17 @@ export default function ProfileScreen() {
         </Modal>
 
         <Text style={styles.sectionTitle}>Sleep Settings</Text>
+
+        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/progress')}>
+          <View style={styles.settingIcon}>
+            <TrendingUp color={colors.cream} size={20} />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>Progress</Text>
+            <Text style={styles.settingDescription}>View sleep stats and streaks</Text>
+          </View>
+          <ChevronRight color={colors.textMuted} size={20} />
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.settingItem}>
           <View style={styles.settingIcon}>
