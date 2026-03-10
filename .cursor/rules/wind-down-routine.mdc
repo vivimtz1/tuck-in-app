@@ -1,0 +1,32 @@
+---
+description: Rules and validation for wind-down routine configuration
+---
+
+# Wind-Down Routine Rules
+
+## Timing Rules
+
+1. **No Overlapping Times**: Two items cannot be scheduled at the same time. Each item has a start time (minutesBeforeBedtime) and end time (start + duration).
+
+2. **Duration-Based Spacing**: If an item takes X minutes, the next item must start at least X minutes after the previous item's start time. For example:
+   - If Breathing Exercises (10 min) starts at 30 min before bedtime
+   - The next item must start no earlier than 20 min before bedtime (30 - 10 = 20)
+
+3. **Automatic Timing Adjustment**: When items are reordered, timing is automatically adjusted to maintain proper spacing:
+   - Items are ordered from furthest from bedtime to closest
+   - Each item's start time = previous item's end time
+   - This ensures no conflicts and proper sequencing
+
+## Validation
+
+- Check for time overlaps between enabled items
+- Ensure next item doesn't start before previous item finishes
+- Display validation errors to user before saving
+- Prevent saving if conflicts exist
+
+## Item Properties
+
+Each wind-down item includes:
+- `duration`: How long the activity takes (in minutes)
+- `description`: What the activity involves and how Teddy helps
+- `minutesBeforeBedtime`: When the activity starts (automatically adjusted on reorder)

@@ -5,8 +5,10 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { Check, Moon, Star } from 'lucide-react-native';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 export default function CompleteScreen() {
+  const { getFirstNightBedtime } = useOnboarding();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const starsAnim = useRef(new Animated.Value(0)).current;
@@ -86,8 +88,8 @@ export default function CompleteScreen() {
           <Text style={styles.title}>You're All Set!</Text>
           <Text style={styles.subtitle}>
             Your sleep journey begins tonight.{'\n'}
-            Teddy is ready to help you build{'\n'}
-            better sleep habits.
+            You can always adjust your preferences 
+            in the settings.
           </Text>
         </Animated.View>
 
@@ -96,7 +98,7 @@ export default function CompleteScreen() {
             <View style={styles.featureIcon}>
               <Moon color={colors.blue} size={20} />
             </View>
-            <Text style={styles.featureText}>Your bedtime is set for 11:00 PM</Text>
+            <Text style={styles.featureText}>Your bedtime is set for {getFirstNightBedtime()}</Text>
           </View>
           <View style={styles.featureRow}>
             <View style={styles.featureIcon}>
@@ -210,7 +212,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 26,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.sm,
   },
   featuresContainer: {
     width: '100%',
