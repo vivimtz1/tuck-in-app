@@ -42,23 +42,23 @@ export default function RootLayout() {
           <SleepLogProvider>
             <AlarmRingerProvider>
               <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background },
-                animation: 'slide_from_right',
-              }}
-            >
-              <Stack.Screen name="index" options={{ animation: 'none' }} />
-              <Stack.Screen name="welcome" />
-              <Stack.Screen name="login" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="checkin" />
-              <Stack.Screen name="schedule" />
-              <Stack.Screen name="winddown" />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="light" />
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.background },
+                  animation: 'slide_from_right',
+                }}
+              >
+                <Stack.Screen name="index" options={{ animation: 'none' }} />
+                <Stack.Screen name="welcome" />
+                <Stack.Screen name="login" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="checkin" />
+                <Stack.Screen name="schedule" />
+                <Stack.Screen name="winddown" />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="light" />
             </AlarmRingerProvider>
           </SleepLogProvider>
         </WindDownProvider>

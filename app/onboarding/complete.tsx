@@ -4,11 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
-import { Check, Moon, Star } from 'lucide-react-native';
-import { useOnboarding } from '@/contexts/OnboardingContext';
+import { Check, Moon, Star, Wind } from 'lucide-react-native';
+import { useOnboarding, TimeValue } from '@/contexts/OnboardingContext';
+import { supabase } from '@/lib/supabase';
+
+function toHH24(t: TimeValue): string {
+  let h = t.hour;
+  if (t.period === 'PM' && h !== 12) h += 12;
+  if (t.period === 'AM' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${t.minute}`;
+}
 
 export default function CompleteScreen() {
-  const { getFirstNightBedtime } = useOnboarding();
+  const { data, formatTime } = useOnboarding();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const starsAnim = useRef(new Animated.Value(0)).current;
@@ -36,8 +44,22 @@ export default function CompleteScreen() {
     ]).start();
   }, []);
 
-  const handleGetStarted = () => {
-    // Mark onboarding as complete and navigate to home
+  const handleGetStarted = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const userId = session.user.id;
+      await supabase.from('sleep_goals').insert({
+        user_id: userId,
+        bedtime: toHH24(data.bedtime),
+        wake_time: toHH24(data.wakeTime),
+        is_active: true,
+        use_different_schedule: false,
+      });
+      await supabase.from('users').update({
+        onboarding_completed: true,
+        teddy_name: data.teddyName,
+      }).eq('id', userId);
+    }
     router.replace('/(tabs)');
   };
 
@@ -88,8 +110,8 @@ export default function CompleteScreen() {
           <Text style={styles.title}>You're All Set!</Text>
           <Text style={styles.subtitle}>
             Your sleep journey begins tonight.{'\n'}
-            You can always adjust your preferences 
-            in the settings.
+            {data.teddyName} is ready to help you build{'\n'}
+            better sleep habits.
           </Text>
         </Animated.View>
 
@@ -98,7 +120,9 @@ export default function CompleteScreen() {
             <View style={styles.featureIcon}>
               <Moon color={colors.blue} size={20} />
             </View>
-            <Text style={styles.featureText}>Your bedtime is set for {getFirstNightBedtime()}</Text>
+            <Text style={styles.featureText}>
+              Your bedtime is set for {formatTime(data.bedtime)}
+            </Text>
           </View>
           <View style={styles.featureRow}>
             <View style={styles.featureIcon}>
@@ -110,7 +134,13 @@ export default function CompleteScreen() {
             <View style={styles.featureIcon}>
               <Text style={styles.featureEmoji}>🧸</Text>
             </View>
-            <Text style={styles.featureText}>Teddy is your sleep companion</Text>
+            <Text style={styles.featureText}>{data.teddyName} is your sleep companion</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <View style={styles.featureIcon}>
+              <Wind color={colors.cream} size={20} />
+            </View>
+            <Text style={styles.featureText}>Next: Set up your wind-down routine in the app</Text>
           </View>
         </Animated.View>
       </View>
@@ -151,26 +181,11 @@ const styles = StyleSheet.create({
   star: {
     position: 'absolute',
   },
-  star1: {
-    top: 20,
-    left: 30,
-  },
-  star2: {
-    top: 60,
-    right: 20,
-  },
-  star3: {
-    bottom: 40,
-    left: 10,
-  },
-  star4: {
-    top: 10,
-    right: 60,
-  },
-  star5: {
-    bottom: 20,
-    right: 40,
-  },
+  star1: { top: 20, left: 30 },
+  star2: { top: 60, right: 20 },
+  star3: { bottom: 40, left: 10 },
+  star4: { top: 10, right: 60 },
+  star5: { bottom: 20, right: 40 },
   successCircle: {
     position: 'relative',
     marginBottom: spacing.xl,
@@ -216,8 +231,8 @@ const styles = StyleSheet.create({
   },
   featuresContainer: {
     width: '100%',
-    gap: spacing.md,
-    marginTop: spacing.lg,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   featureRow: {
     flexDirection: 'row',

@@ -1,79 +1,51 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-type TimeValue = {
-  hour: number;
-  minute: string;
-  period: string;
+export type TimeValue = { hour: number; minute: string; period: string };
+
+export type OnboardingData = {
+  barriers: string[];
+  otherBarrierText: string;
+  bedtime: TimeValue;
+  wakeTime: TimeValue;
+  notificationPrefs: { id: string; enabled: boolean }[];
+  teddyName: string;
 };
 
 type OnboardingContextType = {
-  currentBedtime: TimeValue;
-  setCurrentBedtime: (time: TimeValue) => void;
-  currentWakeTime: TimeValue;
-  setCurrentWakeTime: (time: TimeValue) => void;
-  getFirstNightBedtime: () => string;
+  data: OnboardingData;
+  setOnboardingData: (partial: Partial<OnboardingData>) => void;
+  formatTime: (t: TimeValue) => string;
+};
+
+const defaultData: OnboardingData = {
+  barriers: [],
+  otherBarrierText: '',
+  bedtime: { hour: 11, minute: '00', period: 'PM' },
+  wakeTime: { hour: 7, minute: '30', period: 'AM' },
+  notificationPrefs: [],
+  teddyName: 'Teddy',
 };
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const [currentBedtime, setCurrentBedtime] = useState<TimeValue>({ 
-    hour: 11, 
-    minute: '00', 
-    period: 'PM' 
-  });
-  const [currentWakeTime, setCurrentWakeTime] = useState<TimeValue>({ 
-    hour: 7, 
-    minute: '30', 
-    period: 'AM' 
-  });
+  const [data, setData] = useState<OnboardingData>(defaultData);
 
-  // Calculate bedtime 5 minutes earlier than current
-  const getFirstNightBedtime = (): string => {
-    let hour = currentBedtime.hour;
-    let minute = parseInt(currentBedtime.minute);
-    let period = currentBedtime.period;
-
-    // Subtract 5 minutes
-    minute -= 5;
-    
-    if (minute < 0) {
-      minute = 60 + minute; // e.g., -5 becomes 55
-      hour -= 1;
-      
-      if (hour < 1) {
-        hour = 12;
-        // Toggle period when going from 12:xx to 11:xx
-        period = period === 'PM' ? 'AM' : 'PM';
-      } else if (hour === 11 && currentBedtime.hour === 12) {
-        // Going from 12:xx to 11:xx toggles period
-        period = period === 'PM' ? 'AM' : 'PM';
-      }
-    }
-
-    const minuteStr = minute.toString().padStart(2, '0');
-    return `${hour}:${minuteStr} ${period}`;
+  const setOnboardingData = (partial: Partial<OnboardingData>) => {
+    setData(prev => ({ ...prev, ...partial }));
   };
 
+  const formatTime = (t: TimeValue) => `${t.hour}:${t.minute} ${t.period}`;
+
   return (
-    <OnboardingContext.Provider 
-      value={{ 
-        currentBedtime, 
-        setCurrentBedtime, 
-        currentWakeTime, 
-        setCurrentWakeTime,
-        getFirstNightBedtime 
-      }}
-    >
+    <OnboardingContext.Provider value={{ data, setOnboardingData, formatTime }}>
       {children}
     </OnboardingContext.Provider>
   );
 }
 
 export function useOnboarding() {
-  const context = useContext(OnboardingContext);
-  if (context === undefined) {
-    throw new Error('useOnboarding must be used within an OnboardingProvider');
-  }
-  return context;
+  const ctx = useContext(OnboardingContext);
+  if (!ctx) throw new Error('useOnboarding must be used within OnboardingProvider');
+  return ctx;
 }

@@ -22,6 +22,7 @@ type SleepLogContextType = {
   dismissCelebration: () => void;
   logBedtime: () => void;
   logWakeTime: () => void;
+  cancelBedtime: () => void;
   stats: {
     streak: number;
     goalsThisWeek: number;
@@ -86,6 +87,8 @@ export function SleepLogProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const cancelBedtime = () => setActiveSession(null);
+
   const dismissCelebration = () => setCelebration(false);
 
   const lastEntry = useMemo(() => {
@@ -140,6 +143,7 @@ export function SleepLogProvider({ children }: { children: ReactNode }) {
         dismissCelebration,
         logBedtime,
         logWakeTime,
+        cancelBedtime,
         stats,
         weekData,
         lastEntry,

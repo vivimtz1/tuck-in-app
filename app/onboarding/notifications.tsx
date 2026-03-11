@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
-import { ArrowLeft, Bell, Moon, Sun, MessageCircle, Award, Clock } from 'lucide-react-native';
+import { ArrowLeft, Moon, Sun, MessageCircle, Award, Clock } from 'lucide-react-native';
 import { Card } from '@/components/Card';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 type NotificationSetting = {
   id: string;
@@ -16,32 +17,33 @@ type NotificationSetting = {
 };
 
 export default function NotificationsScreen() {
+  const { setOnboardingData } = useOnboarding();
   const [notifications, setNotifications] = useState<NotificationSetting[]>([
     {
       id: 'bedtime_reminder',
       label: 'Bedtime Reminder',
-      description: 'Get reminded 30 minutes before bedtime',
+      description: 'Reminds you 30 minutes before bedtime',
       icon: <Moon color={colors.blue} size={24} />,
       enabled: true,
     },
     {
       id: 'wind_down',
       label: 'Wind-Down Alert',
-      description: 'Start your relaxation routine',
+      description: 'Nudges you to start your relaxation routine',
       icon: <Clock color={colors.cream} size={24} />,
-      enabled: true,
+      enabled: false,
     },
     {
       id: 'morning_checkin',
       label: 'Morning Check-in',
-      description: 'Log how you slept each morning',
+      description: 'Reminds you to log how you slept',
       icon: <Sun color={colors.gold} size={24} />,
       enabled: true,
     },
     {
       id: 'encouragement',
       label: 'Encouragement Messages',
-      description: 'Motivational reminders from Teddy',
+      description: 'Motivational messages from Teddy',
       icon: <MessageCircle color={colors.textSecondary} size={24} />,
       enabled: false,
     },
@@ -50,7 +52,7 @@ export default function NotificationsScreen() {
       label: 'Achievement Alerts',
       description: 'Celebrate your sleep milestones',
       icon: <Award color={colors.gold} size={24} />,
-      enabled: true,
+      enabled: false,
     },
   ]);
 
@@ -60,15 +62,12 @@ export default function NotificationsScreen() {
     );
   };
 
-  const enableAll = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, enabled: true })));
-  };
-
   const handleContinue = () => {
+    setOnboardingData({
+      notificationPrefs: notifications.map(n => ({ id: n.id, enabled: n.enabled })),
+    });
     router.push('/onboarding/teddy');
   };
-
-  const enabledCount = notifications.filter((n) => n.enabled).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -87,12 +86,13 @@ export default function NotificationsScreen() {
           <Text style={styles.step}>Step 3 of 4</Text>
           <Text style={styles.title}>Stay on Track</Text>
           <Text style={styles.subtitle}>
-            Notifications help you build consistent sleep habits.{'\n'}Choose what works for you.
+            Choose which reminders you'd like from Teddy.
           </Text>
-            <TouchableOpacity style={styles.enableAllButton} onPress={enableAll}>
-                <Bell color={colors.cream} size={20} />
-                <Text style={styles.enableAllText}>Enable All Notifications</Text>
-            </TouchableOpacity>
+
+          <View style={styles.teddyNote}>
+            <Text style={styles.teddyNoteText}>🧸 All reminders come from Teddy — choose which ones you'd like.</Text>
+          </View>
+
           <Card style={styles.notificationsCard}>
             {notifications.map((notification, index) => (
               <View key={notification.id}>
@@ -116,9 +116,9 @@ export default function NotificationsScreen() {
             ))}
           </Card>
 
-        <Text style={styles.infoText}>
-            You can change these settings anytime in your profile.
-        </Text>
+          <Text style={styles.infoText}>
+            You can change these anytime in your profile.
+          </Text>
         </View>
       </ScrollView>
 
@@ -193,28 +193,23 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
     lineHeight: 24,
   },
-  heroSection: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
+  teddyNote: {
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  bellIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  heroText: {
-    ...typography.h3,
-    color: colors.cream,
+  teddyNoteText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   notificationsCard: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   notificationRow: {
     flexDirection: 'row',
@@ -245,40 +240,12 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginVertical: spacing.sm,
-  },
-  enableAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.cream,
-    borderStyle: 'dashed',
-    marginBottom: spacing.lg,
-  },
-  enableAllText: {
-    ...typography.body,
-    fontFamily: 'Fredoka-Medium',
-    color: colors.cream,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.cardBg,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-  },
-  infoEmoji: {
-    fontSize: 20,
+    marginVertical: spacing.xs,
   },
   infoText: {
     ...typography.caption,
     color: colors.textMuted,
-    flex: 1,
+    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: spacing.lg,

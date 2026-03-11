@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -78,18 +78,9 @@ function TimePicker({ value, onChange, label, icon }: TimePickerProps) {
 }
 
 export default function ScheduleScreen() {
-  const { currentBedtime, setCurrentBedtime, currentWakeTime, setCurrentWakeTime } = useOnboarding();
-  const [bedtime, setBedtime] = useState(currentBedtime);
-  const [wakeTime, setWakeTime] = useState(currentWakeTime);
-
-  // Update context when local state changes
-  useEffect(() => {
-    setCurrentBedtime(bedtime);
-  }, [bedtime]);
-
-  useEffect(() => {
-    setCurrentWakeTime(wakeTime);
-  }, [wakeTime]);
+  const { setOnboardingData } = useOnboarding();
+  const [bedtime, setBedtime] = useState({ hour: 11, minute: '00', period: 'PM' });
+  const [wakeTime, setWakeTime] = useState({ hour: 7, minute: '30', period: 'AM' });
 
   const calculateSleepDuration = () => {
     let bedHour = bedtime.hour;
@@ -118,7 +109,7 @@ export default function ScheduleScreen() {
   const isRecommendedDuration = duration.hours >= 7 && duration.hours <= 9;
 
   const handleContinue = () => {
-    // Store schedule for later
+    setOnboardingData({ bedtime, wakeTime });
     router.push('/onboarding/notifications');
   };
 
