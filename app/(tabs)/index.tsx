@@ -1,13 +1,14 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil } from 'lucide-react-native';
+import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, Headphones } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { router } from 'expo-router';
 import { useWindDown } from '@/contexts/WindDownContext';
 import { useSleepLog } from '@/contexts/SleepLogContext';
 import { CelebrationModal } from '@/components/CelebrationModal';
+import { supabase } from '@/lib/supabase';
 
 type ScheduleItem = {
   id: string;
@@ -16,109 +17,113 @@ type ScheduleItem = {
   icon: string;
 };
 
+function formatHH24ToDisplay(timeStr: string): string {
+  const [h, m] = timeStr.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 export default function HomeScreen() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+  const [bedtime, setBedtime] = useState('11:00 PM');
+  const [wakeTime, setWakeTime] = useState('7:30 AM');
   const { getEnabledItems } = useWindDown();
   const enabledItems = getEnabledItems();
   const hasNoWindDownRoutine = enabledItems.length === 0;
 
-  const { activeSession, logBedtime, logWakeTime, lastEntry, celebration, dismissCelebration } = useSleepLog();
+  const { activeSession, logBedtime, logWakeTime, cancelBedtime, lastEntry, celebration, dismissCelebration } = useSleepLog();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // TODO: Fetch from Supabase - for now using defaults
-  const bedtime = '11:00 PM';
-  const wakeTime = '7:30 AM';
-  const lastNightSleep = { hours: 7, minutes: 33 };
-  const sleepQuality = 8;
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: goals } = await supabase
+          .from('sleep_goals')
+          .select('bedtime, wake_time')
+          .eq('user_id', session.user.id)
+          .eq('is_active', true)
+          .single();
+        if (goals) {
+          setBedtime(formatHH24ToDisplay(goals.bedtime));
+          setWakeTime(formatHH24ToDisplay(goals.wake_time));
+        }
+      }
+    };
+    fetchSchedule();
+  }, []);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
-  // Parse time string like "11:00 PM" to Date object for today
   const parseTimeString = (timeStr: string): Date => {
     const [time, period] = timeStr.split(' ');
     const [hours, minutes] = time.split(':').map(Number);
     const date = new Date();
     let hour24 = hours;
-    
     if (period === 'PM' && hours !== 12) hour24 = hours + 12;
     if (period === 'AM' && hours === 12) hour24 = 0;
-    
     date.setHours(hour24, minutes, 0, 0);
-    
-    // If time has passed today, set for tomorrow
     const now = new Date();
     if (date < now) {
       date.setDate(date.getDate() + 1);
     }
-    
     return date;
   };
 
-  // Generate schedule timeline based on bedtime and user's wind-down routine
   const generateSchedule = (bedtimeStr: string): ScheduleItem[] => {
     const bedtimeDate = parseTimeString(bedtimeStr);
     const schedule: ScheduleItem[] = [];
-
-    // Add wind-down routine items based on user configuration
     enabledItems.forEach(item => {
       const itemTime = new Date(bedtimeDate);
       itemTime.setMinutes(itemTime.getMinutes() - item.minutesBeforeBedtime);
-      schedule.push({
-        id: item.id,
-        title: item.title,
-        time: itemTime,
-        icon: item.icon,
-      });
+      schedule.push({ id: item.id, title: item.title, time: itemTime, icon: item.icon });
     });
-
-    // Always add bedtime at the end
-    schedule.push({
-      id: 'bedtime',
-      title: 'Bedtime',
-      time: bedtimeDate,
-      icon: '🌙',
-    });
-
+    schedule.push({ id: 'bedtime', title: 'Bedtime', time: bedtimeDate, icon: '🌙' });
     return schedule.sort((a, b) => a.time.getTime() - b.time.getTime());
   };
 
   const schedule = generateSchedule(bedtime);
   const now = currentTime;
 
-  // Check if within 15 minutes of bedtime
   const bedtimeDate = parseTimeString(bedtime);
   const minutesUntilBedtime = (bedtimeDate.getTime() - now.getTime()) / (1000 * 60);
   const isWithin15Minutes = minutesUntilBedtime >= 0 && minutesUntilBedtime <= 15;
 
-  // Check if between bedtime and wake time (sleeping hours)
   const wakeTimeDate = parseTimeString(wakeTime);
-  // If wake time is earlier than bedtime (e.g., 7 AM vs 11 PM), it's next day
   if (wakeTimeDate < bedtimeDate) {
     wakeTimeDate.setDate(wakeTimeDate.getDate() + 1);
   }
   const isBetweenBedtimeAndWake = now >= bedtimeDate || now < wakeTimeDate;
 
-  // Find next upcoming item
   const nextItem = schedule.find(item => item.time > now) || schedule[0];
-  const nextItemIndex = schedule.findIndex(item => item === nextItem);
 
-  // Format time for display
   const formatScheduleTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
-  // Check if item is in the past
   const isPast = (item: ScheduleItem) => item.time < now;
-
-  // Check if item is next
   const isNext = (item: ScheduleItem) => item === nextItem;
+
+  const handleCancelBedtime = () => {
+    Alert.alert(
+      'Cancel sleep log?',
+      'This will stop tracking tonight\'s sleep.',
+      [
+        { text: 'Keep tracking', style: 'cancel' },
+        { text: 'Cancel log', style: 'destructive', onPress: cancelBedtime },
+      ]
+    );
+  };
+
+  const sleepLogTitle = activeSession ? "You're Sleeping..." : "Track Your Sleep";
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -143,15 +148,12 @@ export default function HomeScreen() {
               <Bell color={colors.blue} size={24} />
               <Text style={styles.bedtimeTitle}>It's Bedtime!</Text>
             </View>
-
             <View style={styles.teddyContainer}>
               <Text style={styles.teddyLarge}>🧸</Text>
             </View>
-
             <Text style={styles.bedtimeMessage}>
               Sweet dreams, your alarm is set for {wakeTime}
             </Text>
-
             <View style={styles.bedtimeActions}>
               <TouchableOpacity style={styles.changeButton}>
                 <Text style={styles.changeButtonText}>Change</Text>
@@ -172,10 +174,12 @@ export default function HomeScreen() {
               <Wind color={colors.blue} size={22} />
             </View>
             <View style={styles.windDownEmptyContent}>
-              <Text style={styles.windDownEmptyTitle}>Set up your wind-down routine</Text>
-              <Text style={styles.windDownEmptyDescription}>Add activities before bed, then we’ll build your timeline.</Text>
+              <Text style={styles.windDownEmptyTitle}>Set Up Your Wind-Down Routine</Text>
+              <Text style={styles.windDownEmptyDescription}>
+                Choose calming activities before bed. Teddy will guide you through them each night.
+              </Text>
+              <Text style={styles.windDownEmptyCta}>Get Started →</Text>
             </View>
-            <Settings2 color={colors.textMuted} size={20} />
           </TouchableOpacity>
         ) : (
           /* Show schedule timeline */
@@ -187,12 +191,8 @@ export default function HomeScreen() {
               <View style={styles.scheduleHeaderLeft}>
                 <Clock color={colors.blue} size={24} />
                 <View style={styles.scheduleHeaderText}>
-                  <Text style={styles.scheduleTitle}>
-                    {nextItem.title}
-                  </Text>
-                  <Text style={styles.scheduleSubtitle}>
-                    {formatScheduleTime(nextItem.time)}
-                  </Text>
+                  <Text style={styles.scheduleTitle}>{nextItem.title}</Text>
+                  <Text style={styles.scheduleSubtitle}>{formatScheduleTime(nextItem.time)}</Text>
                 </View>
               </View>
               {isTimelineExpanded ? (
@@ -209,7 +209,6 @@ export default function HomeScreen() {
                     const isLast = index === schedule.length - 1;
                     const itemIsPast = isPast(item);
                     const itemIsNext = isNext(item);
-
                     return (
                       <View key={item.id} style={styles.timelineItem}>
                         <View style={styles.timelineLeft}>
@@ -223,12 +222,7 @@ export default function HomeScreen() {
                             <Text style={styles.timelineIcon}>{item.icon}</Text>
                           </View>
                           {!isLast && (
-                            <View
-                              style={[
-                                styles.timelineLine,
-                                itemIsPast && styles.timelineLinePast,
-                              ]}
-                            />
+                            <View style={[styles.timelineLine, itemIsPast && styles.timelineLinePast]} />
                           )}
                         </View>
                         <View style={styles.timelineContent}>
@@ -241,12 +235,7 @@ export default function HomeScreen() {
                           >
                             {item.title}
                           </Text>
-                          <Text
-                            style={[
-                              styles.timelineTime,
-                              itemIsPast && styles.timelineTimePast,
-                            ]}
-                          >
+                          <Text style={[styles.timelineTime, itemIsPast && styles.timelineTimePast]}>
                             {formatScheduleTime(item.time)}
                           </Text>
                         </View>
@@ -272,9 +261,7 @@ export default function HomeScreen() {
             <Text style={styles.scheduleTime}>{bedtime}</Text>
             <Text style={styles.scheduleLabel}>Bedtime</Text>
           </View>
-
           <View style={styles.divider} />
-
           <View style={styles.scheduleItem}>
             <Sun color={colors.gold} size={28} />
             <Text style={styles.scheduleTime}>{wakeTime}</Text>
@@ -282,32 +269,16 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Last Night</Text>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {lastNightSleep.hours}h {lastNightSleep.minutes}m
-              </Text>
-              <Text style={styles.summaryLabel}>Sleep Duration</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{sleepQuality}/10</Text>
-              <Text style={styles.summaryLabel}>Sleep Quality</Text>
-            </View>
-          </View>
-        </Card>
-
         {/* Sleep Log Card */}
-        <Text style={styles.sectionTitle}>Log Your Sleep</Text>
+        <Text style={styles.sectionTitle}>{sleepLogTitle}</Text>
         <Card style={styles.sleepLogCard}>
           {activeSession ? (
-            /* In bed — show wake up button */
+            /* In bed — show wake up button + cancel */
             <>
               <View style={styles.sleepLogInBed}>
                 <Text style={styles.sleepLogEmoji}>😴</Text>
                 <View style={styles.sleepLogInBedText}>
-                  <Text style={styles.sleepLogInBedTitle}>Sleep well!</Text>
+                  <Text style={styles.sleepLogInBedTitle}>Tracking tonight's sleep</Text>
                   <Text style={styles.sleepLogInBedSub}>
                     Went to bed at{' '}
                     {activeSession.bedtime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -316,7 +287,10 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity style={styles.wakeButton} onPress={logWakeTime}>
                 <Sun color={colors.dark} size={18} />
-                <Text style={styles.wakeButtonText}>Good Morning! I Just Woke Up ☀️</Text>
+                <Text style={styles.wakeButtonText}>I Just Woke Up ☀️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelLink} onPress={handleCancelBedtime}>
+                <Text style={styles.cancelLinkText}>Cancel — I didn't go to bed yet</Text>
               </TouchableOpacity>
             </>
           ) : lastEntry && lastEntry.durationMinutes > 0 ? (
@@ -344,61 +318,63 @@ export default function HomeScreen() {
             </>
           ) : (
             /* No active session, no recent entry */
-            <>
-              <Text style={styles.sleepLogPrompt}>
-                Tap when you're heading to bed or waking up — Teddy will track your sleep for you!
-              </Text>
-              <View style={styles.sleepLogButtons}>
+            <View style={styles.sleepLogButtons}>
+              <View style={styles.sleepLogOption}>
+                <Text style={styles.sleepLogOptionLabel}>Heading to bed now?</Text>
                 <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
                   <Moon color={colors.cream} size={16} />
                   <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
                 </TouchableOpacity>
+                <Text style={styles.sleepLogOptionHint}>Start tracking tonight's sleep</Text>
+              </View>
+              <View style={styles.sleepLogSeparator} />
+              <View style={styles.sleepLogOption}>
+                <Text style={styles.sleepLogOptionLabel}>Already woke up?</Text>
                 <TouchableOpacity style={styles.wakeButtonOutline} onPress={logWakeTime}>
                   <Sun color={colors.gold} size={16} />
                   <Text style={styles.wakeButtonOutlineText}>Just Woke Up ☀️</Text>
                 </TouchableOpacity>
+                <Text style={styles.sleepLogOptionHint}>Log last night's sleep</Text>
               </View>
-            </>
+            </View>
           )}
         </Card>
 
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/winddown')}>
-          <View style={styles.actionIcon}>
-            <Wind color={colors.blue} size={24} />
-          </View>
-          <View style={styles.actionContent}>
-            <Text style={styles.actionTitle}>Start Wind-Down Routine</Text>
-            <Text style={styles.actionDescription}>
-              Begin your bedtime preparation
-            </Text>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.actionsGrid}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/winddown')}>
+            <View style={styles.actionIcon}>
+              <Wind color={colors.blue} size={22} />
+            </View>
+            <Text style={styles.actionTitle}>Wind-Down Routine</Text>
+            <Text style={styles.actionDescription}>Begin bedtime prep</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/schedule')}>
-          <View style={styles.actionIcon}>
-            <Calendar color={colors.cream} size={24} />
-          </View>
-          <View style={styles.actionContent}>
-            <Text style={styles.actionTitle}>Adjust Sleep Schedule</Text>
-            <Text style={styles.actionDescription}>
-              Change your bedtime or wake time
-            </Text>
-          </View>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/schedule')}>
+            <View style={styles.actionIcon}>
+              <Calendar color={colors.cream} size={22} />
+            </View>
+            <Text style={styles.actionTitle}>Sleep Schedule</Text>
+            <Text style={styles.actionDescription}>Adjust bedtime</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/winddown-routine')}>
-          <View style={styles.actionIcon}>
-            <Settings2 color={colors.blue} size={24} />
-          </View>
-          <View style={styles.actionContent}>
-            <Text style={styles.actionTitle}>Adjust Wind-Down Routine</Text>
-            <Text style={styles.actionDescription}>
-              Customize your pre-bed activities and order
-            </Text>
-          </View>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/winddown-routine')}>
+            <View style={styles.actionIcon}>
+              <Settings2 color={colors.blue} size={22} />
+            </View>
+            <Text style={styles.actionTitle}>Edit Routine</Text>
+            <Text style={styles.actionDescription}>Customize activities</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/content')}>
+            <View style={styles.actionIcon}>
+              <Headphones color={colors.gold} size={22} />
+            </View>
+            <Text style={styles.actionTitle}>Content Library</Text>
+            <Text style={styles.actionDescription}>Music & podcasts</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
@@ -540,67 +516,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginHorizontal: spacing.md,
   },
-  summaryCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  summaryTitle: {
-    ...typography.h3,
-    color: colors.cream,
-    marginBottom: spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  summaryItem: {
-    flex: 1,
-  },
-  summaryValue: {
-    ...typography.h2,
-    color: colors.blue,
-    marginBottom: spacing.xs,
-  },
-  summaryLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
   sectionTitle: {
     ...typography.h3,
     color: colors.cream,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-  },
-  actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBg,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  actionContent: {
-    flex: 1,
-  },
-  actionTitle: {
-    ...typography.body,
-    color: colors.cream,
-    fontFamily: 'Fredoka-Medium',
-    marginBottom: 4,
-  },
-  actionDescription: {
-    ...typography.caption,
-    color: colors.textMuted,
   },
   scheduleCard: {
     marginHorizontal: spacing.lg,
@@ -610,37 +530,43 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: colors.cardBg,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.blue + '60',
     borderStyle: 'dashed',
+    gap: spacing.md,
   },
   windDownEmptyIconWrap: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: borderRadius.full,
     backgroundColor: colors.blue + '25',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginTop: 2,
   },
   windDownEmptyContent: {
     flex: 1,
+    gap: spacing.xs,
   },
   windDownEmptyTitle: {
     ...typography.body,
-    fontSize: 15,
     color: colors.cream,
     fontFamily: 'Fredoka-Medium',
-    marginBottom: 2,
   },
   windDownEmptyDescription: {
     ...typography.caption,
     color: colors.textMuted,
+    lineHeight: 18,
+  },
+  windDownEmptyCta: {
+    ...typography.caption,
+    color: colors.blue,
+    fontFamily: 'Fredoka-Medium',
+    marginTop: spacing.xs,
   },
   // Sleep Log Card
   sleepLogCard: {
@@ -648,15 +574,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     padding: spacing.lg,
   },
-  sleepLogPrompt: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: spacing.lg,
-  },
   sleepLogButtons: {
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  sleepLogOption: {
+    gap: spacing.xs,
+  },
+  sleepLogOptionLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontFamily: 'Fredoka-Medium',
+  },
+  sleepLogOptionHint: {
+    ...typography.small,
+    color: colors.textMuted,
+  },
+  sleepLogSeparator: {
+    height: 1,
+    backgroundColor: colors.border,
   },
   bedButton: {
     flexDirection: 'row',
@@ -720,6 +655,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sleepLogInBedSub: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  cancelLink: {
+    alignItems: 'center',
+    paddingTop: spacing.md,
+  },
+  cancelLinkText: {
     ...typography.caption,
     color: colors.textMuted,
   },
@@ -853,5 +796,39 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.blue,
     fontFamily: 'Fredoka-Medium',
+  },
+  // Quick Actions Grid
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: spacing.lg,
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  actionCard: {
+    width: '47%',
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTitle: {
+    ...typography.body,
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+    fontSize: 14,
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontFamily: 'Fredoka-Regular',
   },
 });

@@ -5,10 +5,12 @@ import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const TEDDY_NAMES = ['Teddy', 'Snuggles', 'Cocoa', 'Patches', 'Honey', 'Buttons'];
 
 export default function TeddyScreen() {
+  const { setOnboardingData } = useOnboarding();
   const [teddyName, setTeddyName] = useState('Teddy');
   const [customName, setCustomName] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -31,7 +33,7 @@ export default function TeddyScreen() {
   };
 
   const handleContinue = () => {
-    // Store teddy preferences
+    setOnboardingData({ teddyName: showCustomInput ? (customName || 'Teddy') : teddyName });
     router.push('/onboarding/complete');
   };
 

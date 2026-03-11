@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { ArrowLeft, Moon, Sun, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { Card } from '@/components/Card';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTES = ['00', '15', '30', '45'];
@@ -77,6 +78,7 @@ function TimePicker({ value, onChange, label, icon }: TimePickerProps) {
 }
 
 export default function ScheduleScreen() {
+  const { setOnboardingData } = useOnboarding();
   const [bedtime, setBedtime] = useState({ hour: 11, minute: '00', period: 'PM' });
   const [wakeTime, setWakeTime] = useState({ hour: 7, minute: '30', period: 'AM' });
 
@@ -107,7 +109,7 @@ export default function ScheduleScreen() {
   const isRecommendedDuration = duration.hours >= 7 && duration.hours <= 9;
 
   const handleContinue = () => {
-    // Store schedule for later
+    setOnboardingData({ bedtime, wakeTime });
     router.push('/onboarding/notifications');
   };
 

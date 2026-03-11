@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 const SLEEP_BARRIERS = [
   { id: 'doomscrolling', label: 'Doomscrolling', description: 'Can\'t stop scrolling at night' },
@@ -18,7 +19,9 @@ const SLEEP_BARRIERS = [
 ];
 
 export default function BarriersScreen() {
+  const { setOnboardingData } = useOnboarding();
   const [selectedBarriers, setSelectedBarriers] = useState<string[]>([]);
+  const [otherText, setOtherText] = useState('');
 
   const toggleBarrier = (id: string) => {
     setSelectedBarriers((prev) =>
@@ -26,8 +29,10 @@ export default function BarriersScreen() {
     );
   };
 
+  const isOtherSelected = selectedBarriers.includes('other');
+
   const handleContinue = () => {
-    // Store barriers for later use (could save to async storage or context)
+    setOnboardingData({ barriers: selectedBarriers, otherBarrierText: otherText });
     router.push('/onboarding/schedule');
   };
 
@@ -48,7 +53,7 @@ export default function BarriersScreen() {
           <Text style={styles.step}>Step 1 of 4</Text>
           <Text style={styles.title}>What's keeping you up?</Text>
           <Text style={styles.subtitle}>
-            Select the barriers that affect your sleep.{'\n'}This helps us personalize your experience.
+            Select any that sound like you — pick as many as apply, or skip ahead.
           </Text>
 
           <View style={styles.barriersGrid}>
@@ -76,6 +81,18 @@ export default function BarriersScreen() {
               );
             })}
           </View>
+
+          {isOtherSelected && (
+            <TextInput
+              style={styles.otherInput}
+              placeholder="What's on your mind at night?"
+              placeholderTextColor={colors.textMuted}
+              value={otherText}
+              onChangeText={setOtherText}
+              multiline
+              numberOfLines={2}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -175,7 +192,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   checkCircle: {
     width: 24,
@@ -195,8 +212,22 @@ const styles = StyleSheet.create({
     color: colors.cream,
   },
   barrierDescription: {
-    ...typography.small,
+    fontSize: 12,
     color: colors.textMuted,
+    fontFamily: 'Fredoka-Regular',
+  },
+  otherInput: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.cream,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    ...typography.body,
+    color: colors.text,
+    minHeight: 72,
+    textAlignVertical: 'top',
   },
   footer: {
     paddingHorizontal: spacing.lg,
