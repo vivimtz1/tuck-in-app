@@ -181,26 +181,11 @@ const styles = StyleSheet.create({
   star: {
     position: 'absolute',
   },
-  star1: {
-    top: 20,
-    left: 30,
-  },
-  star2: {
-    top: 60,
-    right: 20,
-  },
-  star3: {
-    bottom: 40,
-    left: 10,
-  },
-  star4: {
-    top: 10,
-    right: 60,
-  },
-  star5: {
-    bottom: 20,
-    right: 40,
-  },
+  star1: { top: 20, left: 30 },
+  star2: { top: 60, right: 20 },
+  star3: { bottom: 40, left: 10 },
+  star4: { top: 10, right: 60 },
+  star5: { bottom: 20, right: 40 },
   successCircle: {
     position: 'relative',
     marginBottom: spacing.xl,
@@ -242,7 +227,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 26,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.sm,
   },
   featuresContainer: {
     width: '100%',

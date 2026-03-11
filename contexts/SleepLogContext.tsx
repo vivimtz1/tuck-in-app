@@ -72,16 +72,19 @@ export function SleepLogProvider({ children }: { children: ReactNode }) {
         bedtime: activeSession.bedtime,
         wakeTime,
         durationMinutes,
-        goalMet: true, // always celebrate for demo
+        goalMet: durationMinutes >= GOAL_MINUTES,
       };
       setEntries(prev => {
         const without = prev.filter(e => e.date !== activeSession.date);
         return [...without, newEntry];
       });
       setActiveSession(null);
+      // Always show report modal after logging wake time
+      setCelebration(true);
+    } else {
+      // If no active session, still show modal on wake
+      setCelebration(true);
     }
-    // Always show celebration when user wakes up
-    setCelebration(true);
   };
 
   const cancelBedtime = () => setActiveSession(null);

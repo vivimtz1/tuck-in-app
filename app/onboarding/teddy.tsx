@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 
-const TEDDY_NAMES = ['Teddy', 'Snuggles', 'Cocoa', 'Patches', 'Honey', 'Buttons'];
+const TEDDY_NAMES = ['Teddy', 'Snuggles', 'Honey'];
 
 export default function TeddyScreen() {
   const { setOnboardingData } = useOnboarding();
