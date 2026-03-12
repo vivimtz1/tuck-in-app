@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, ScrollView, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { router } from 'expo-router';
-import { Check, Moon, Star, Wind } from 'lucide-react-native';
+import { ArrowLeft, Check, Moon, Star, Wind } from 'lucide-react-native';
 import { useOnboarding, TimeValue } from '@/contexts/OnboardingContext';
 import { supabase } from '@/lib/supabase';
 
@@ -17,6 +17,7 @@ function toHH24(t: TimeValue): string {
 
 export default function CompleteScreen() {
   const { data, formatTime } = useOnboarding();
+  const { height: screenHeight } = useWindowDimensions();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const starsAnim = useRef(new Animated.Value(0)).current;
@@ -65,85 +66,98 @@ export default function CompleteScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.content}>
-        <Animated.View
-          style={[
-            styles.starsContainer,
-            {
-              opacity: starsAnim,
-              transform: [{ scale: starsAnim }],
-            },
-          ]}
-        >
-          <View style={[styles.star, styles.star1]}>
-            <Star color={colors.gold} size={20} fill={colors.gold} />
-          </View>
-          <View style={[styles.star, styles.star2]}>
-            <Star color={colors.gold} size={16} fill={colors.gold} />
-          </View>
-          <View style={[styles.star, styles.star3]}>
-            <Star color={colors.gold} size={24} fill={colors.gold} />
-          </View>
-          <View style={[styles.star, styles.star4]}>
-            <Star color={colors.cream} size={14} fill={colors.cream} />
-          </View>
-          <View style={[styles.star, styles.star5]}>
-            <Star color={colors.blue} size={18} fill={colors.blue} />
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.successCircle,
-            { transform: [{ scale: scaleAnim }] },
-          ]}
-        >
-          <View style={styles.teddyCircle}>
-            <Text style={styles.teddyEmoji}>🧸</Text>
-          </View>
-          <View style={styles.checkBadge}>
-            <Check color={colors.dark} size={20} />
-          </View>
-        </Animated.View>
-
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <Text style={styles.title}>You're All Set!</Text>
-          <Text style={styles.subtitle}>
-            Your sleep journey begins tonight.{'\n'}
-            {data.teddyName} is ready to help you build{'\n'}
-            better sleep habits.
-          </Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.featuresContainer, { opacity: fadeAnim }]}>
-          <View style={styles.featureRow}>
-            <View style={styles.featureIcon}>
-              <Moon color={colors.blue} size={20} />
-            </View>
-            <Text style={styles.featureText}>
-              Your bedtime is set for {formatTime(data.bedtime)}
-            </Text>
-          </View>
-          <View style={styles.featureRow}>
-            <View style={styles.featureIcon}>
-              <Check color={colors.success} size={20} />
-            </View>
-            <Text style={styles.featureText}>Reminders are enabled</Text>
-          </View>
-          <View style={styles.featureRow}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureEmoji}>🧸</Text>
-            </View>
-            <Text style={styles.featureText}>{data.teddyName} is your sleep companion</Text>
-          </View>
-          <View style={styles.featureRow}>
-            <View style={styles.featureIcon}>
-              <Wind color={colors.cream} size={20} />
-            </View>
-            <Text style={styles.featureText}>Next: Set up your wind-down routine in the app</Text>
-          </View>
-        </Animated.View>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft color={colors.cream} size={20} />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
       </View>
+
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={[styles.scrollContent, { minHeight: screenHeight * 0.75 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <Animated.View
+            style={[
+              styles.starsContainer,
+              {
+                opacity: starsAnim,
+                transform: [{ scale: starsAnim }],
+              },
+            ]}
+          >
+            <View style={[styles.star, styles.star1]}>
+              <Star color={colors.gold} size={20} fill={colors.gold} />
+            </View>
+            <View style={[styles.star, styles.star2]}>
+              <Star color={colors.gold} size={16} fill={colors.gold} />
+            </View>
+            <View style={[styles.star, styles.star3]}>
+              <Star color={colors.gold} size={24} fill={colors.gold} />
+            </View>
+            <View style={[styles.star, styles.star4]}>
+              <Star color={colors.cream} size={14} fill={colors.cream} />
+            </View>
+            <View style={[styles.star, styles.star5]}>
+              <Star color={colors.blue} size={18} fill={colors.blue} />
+            </View>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.successCircle,
+              { transform: [{ scale: scaleAnim }] },
+            ]}
+          >
+            <View style={styles.teddyCircle}>
+              <Text style={styles.teddyEmoji}>🧸</Text>
+            </View>
+            <View style={styles.checkBadge}>
+              <Check color={colors.dark} size={20} />
+            </View>
+          </Animated.View>
+
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <Text style={styles.title}>You're All Set!</Text>
+            <Text style={styles.subtitle}>
+              Your sleep journey begins tonight.{'\n'}
+              {data.teddyName} is ready to help you build{'\n'}
+              better sleep habits.
+            </Text>
+          </Animated.View>
+
+          <Animated.View style={[styles.featuresContainer, { opacity: fadeAnim }]}>
+            <View style={styles.featureRow}>
+              <View style={styles.featureIcon}>
+                <Moon color={colors.blue} size={20} />
+              </View>
+              <Text style={styles.featureText}>
+                Your bedtime is set for {formatTime(data.bedtime)}
+              </Text>
+            </View>
+            <View style={styles.featureRow}>
+              <View style={styles.featureIcon}>
+                <Check color={colors.success} size={20} />
+              </View>
+              <Text style={styles.featureText}>Reminders are enabled</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <View style={styles.featureIcon}>
+                <Text style={styles.featureEmoji}>🧸</Text>
+              </View>
+              <Text style={styles.featureText}>{data.teddyName} is your sleep companion</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <View style={styles.featureIcon}>
+                <Wind color={colors.cream} size={20} />
+              </View>
+              <Text style={styles.featureText}>Next: Set up your wind-down routine in the app</Text>
+            </View>
+          </Animated.View>
+        </View>
+      </ScrollView>
 
       <View style={styles.footer}>
         <Button
@@ -166,17 +180,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  backText: {
+    ...typography.body,
+    color: colors.cream,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  content: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
   },
   starsContainer: {
     position: 'absolute',
     width: 200,
     height: 200,
-    top: '15%',
+    top: 0,
   },
   star: {
     position: 'absolute',
