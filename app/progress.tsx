@@ -307,6 +307,7 @@ export default function ProgressScreen() {
       <CelebrationModal
         visible={celebration}
         durationMinutes={lastEntry?.durationMinutes ?? 450}
+        goalMet={lastNightGoalMet}
         onDismiss={dismissCelebration}
       />
 

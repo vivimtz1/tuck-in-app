@@ -1,23 +1,100 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { ArrowLeft, Moon, Sun, Lock, Calendar } from 'lucide-react-native';
+import { ArrowLeft, Moon, Sun, Lock, Calendar, X, ChevronRight } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { TimePicker } from '@/components/TimePicker';
 import { router } from 'expo-router';
 
+type TimeValue = { hours: number; minutes: number; period: 'AM' | 'PM' };
+
+type DaySchedule = {
+  bedtime: TimeValue;
+  wakeTime: TimeValue;
+};
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_ABBREVS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const defaultSchedule: DaySchedule = {
+  bedtime: { hours: 11, minutes: 0, period: 'PM' },
+  wakeTime: { hours: 7, minutes: 30, period: 'AM' },
+};
+
 export default function ScheduleScreen() {
-  const [bedtime, setBedtime] = useState({ hours: 11, minutes: 0, period: 'PM' as 'AM' | 'PM' });
-  const [wakeTime, setWakeTime] = useState({ hours: 7, minutes: 30, period: 'AM' as 'AM' | 'PM' });
+  const [bedtime, setBedtime] = useState<TimeValue>({ hours: 11, minutes: 0, period: 'PM' });
+  const [wakeTime, setWakeTime] = useState<TimeValue>({ hours: 7, minutes: 30, period: 'AM' });
   const [useDifferentSchedule, setUseDifferentSchedule] = useState(false);
   const [lockDays, setLockDays] = useState(7);
   const [showBedtimePicker, setShowBedtimePicker] = useState(false);
   const [showWakeTimePicker, setShowWakeTimePicker] = useState(false);
+  
+  // Per-day schedule state
+  const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>(() => {
+    const initial: Record<string, DaySchedule> = {};
+    DAYS_OF_WEEK.forEach(day => {
+      initial[day] = { ...defaultSchedule };
+    });
+    return initial;
+  });
+  const [showDaysModal, setShowDaysModal] = useState(false);
+  const [editingDay, setEditingDay] = useState<string | null>(null);
+  const [editingType, setEditingType] = useState<'bedtime' | 'wakeTime' | null>(null);
+  const [showDayTimePicker, setShowDayTimePicker] = useState(false);
 
-  const formatTime = (time: { hours: number; minutes: number; period: 'AM' | 'PM' }) => {
+  const formatTime = (time: TimeValue) => {
     return `${time.hours}:${time.minutes.toString().padStart(2, '0')} ${time.period}`;
+  };
+
+  const handleToggleDifferentSchedule = () => {
+    if (!useDifferentSchedule) {
+      // When enabling, sync all days to current bedtime/wake time
+      const synced: Record<string, DaySchedule> = {};
+      DAYS_OF_WEEK.forEach(day => {
+        synced[day] = { bedtime: { ...bedtime }, wakeTime: { ...wakeTime } };
+      });
+      setDaySchedules(synced);
+      setShowDaysModal(true);
+    }
+    setUseDifferentSchedule(!useDifferentSchedule);
+  };
+
+  const handleEditDayTime = (day: string, type: 'bedtime' | 'wakeTime') => {
+    setEditingDay(day);
+    setEditingType(type);
+    setShowDaysModal(false); // Close days modal first
+    setTimeout(() => {
+      setShowDayTimePicker(true);
+    }, 300); // Wait for days modal to close
+  };
+
+  const handleSaveDayTime = (time: TimeValue) => {
+    if (editingDay && editingType) {
+      setDaySchedules(prev => ({
+        ...prev,
+        [editingDay]: {
+          ...prev[editingDay],
+          [editingType]: time,
+        },
+      }));
+    }
+    setShowDayTimePicker(false);
+    setTimeout(() => {
+      setEditingDay(null);
+      setEditingType(null);
+      setShowDaysModal(true); // Reopen days modal
+    }, 300);
+  };
+
+  const handleCancelDayTime = () => {
+    setShowDayTimePicker(false);
+    setTimeout(() => {
+      setEditingDay(null);
+      setEditingType(null);
+      setShowDaysModal(true); // Reopen days modal
+    }, 300);
   };
 
   const handleSave = () => {
@@ -85,7 +162,7 @@ export default function ScheduleScreen() {
 
         <TouchableOpacity
           style={styles.optionCard}
-          onPress={() => setUseDifferentSchedule(!useDifferentSchedule)}
+          onPress={handleToggleDifferentSchedule}
         >
           <View style={styles.optionIcon}>
             <Calendar color={colors.blue} size={20} />
@@ -93,13 +170,23 @@ export default function ScheduleScreen() {
           <View style={styles.optionContent}>
             <Text style={styles.optionTitle}>Different Weekday/Weekend Schedule</Text>
             <Text style={styles.optionDescription}>
-              Set different times for weekdays and weekends
+              Set different times for each day of the week
             </Text>
           </View>
           <View style={[styles.checkbox, useDifferentSchedule && styles.checkboxActive]}>
             {useDifferentSchedule && <Text style={styles.checkmark}>✓</Text>}
           </View>
         </TouchableOpacity>
+
+        {useDifferentSchedule && (
+          <TouchableOpacity
+            style={styles.editDaysButton}
+            onPress={() => setShowDaysModal(true)}
+          >
+            <Text style={styles.editDaysText}>Edit Daily Schedule</Text>
+            <ChevronRight color={colors.blue} size={20} />
+          </TouchableOpacity>
+        )}
 
         <Card style={styles.lockCard}>
           <View style={styles.lockHeader}>
@@ -166,6 +253,70 @@ export default function ScheduleScreen() {
         onClose={() => setShowWakeTimePicker(false)}
         onSave={setWakeTime}
         title="Set Wake Time"
+      />
+
+      {/* Days of week modal */}
+      <Modal
+        visible={showDaysModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDaysModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Daily Schedule</Text>
+              <TouchableOpacity onPress={() => setShowDaysModal(false)}>
+                <X color={colors.textMuted} size={24} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {DAYS_OF_WEEK.map((day, index) => (
+                <View key={day} style={styles.dayRow}>
+                  <Text style={styles.dayName}>{day}</Text>
+                  <View style={styles.dayTimes}>
+                    <TouchableOpacity
+                      style={styles.dayTimeButton}
+                      onPress={() => handleEditDayTime(day, 'bedtime')}
+                    >
+                      <Moon color={colors.cream} size={14} />
+                      <Text style={styles.dayTimeText}>
+                        {formatTime(daySchedules[day].bedtime)}
+                      </Text>
+                    </TouchableOpacity>
+                    <Text style={styles.dayTimeSeparator}>—</Text>
+                    <TouchableOpacity
+                      style={styles.dayTimeButton}
+                      onPress={() => handleEditDayTime(day, 'wakeTime')}
+                    >
+                      <Sun color={colors.gold} size={14} />
+                      <Text style={styles.dayTimeText}>
+                        {formatTime(daySchedules[day].wakeTime)}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalSaveButton}
+              onPress={() => setShowDaysModal(false)}
+            >
+              <Text style={styles.modalSaveText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Day-specific time picker */}
+      <TimePicker
+        visible={showDayTimePicker}
+        time={editingDay && editingType ? daySchedules[editingDay][editingType] : defaultSchedule.bedtime}
+        onClose={handleCancelDayTime}
+        onSave={handleSaveDayTime}
+        title={editingDay && editingType ? `Set ${editingType === 'bedtime' ? 'Bedtime' : 'Wake Time'} for ${editingDay}` : 'Set Time'}
       />
     </SafeAreaView>
   );
@@ -291,6 +442,7 @@ const styles = StyleSheet.create({
   },
   optionContent: {
     flex: 1,
+    marginRight: spacing.md,
   },
   optionTitle: {
     ...typography.body,
@@ -310,6 +462,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: spacing.sm,
   },
   checkboxActive: {
     backgroundColor: colors.blue,
@@ -401,5 +554,96 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginHorizontal: spacing.lg,
+  },
+  editDaysButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.blue + '20',
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  editDaysText: {
+    ...typography.body,
+    color: colors.blue,
+    fontFamily: 'Fredoka-Medium',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBg,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: colors.cream,
+  },
+  modalScroll: {
+    paddingHorizontal: spacing.lg,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dayName: {
+    ...typography.body,
+    color: colors.cream,
+    fontFamily: 'Fredoka-Medium',
+    width: 100,
+  },
+  dayTimes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  dayTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  dayTimeText: {
+    ...typography.caption,
+    color: colors.text,
+  },
+  dayTimeSeparator: {
+    color: colors.textMuted,
+  },
+  modalSaveButton: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    backgroundColor: colors.blue,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    ...typography.body,
+    color: colors.dark,
+    fontFamily: 'Fredoka-Medium',
   },
 });

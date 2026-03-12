@@ -144,7 +144,16 @@ export default function WindDownScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {allDone ? (
+        {steps.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>🌙</Text>
+            <Text style={styles.emptyTitle}>No Routine Set Up</Text>
+            <Text style={styles.emptyText}>Create a wind-down routine to help you relax before bed.</Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/winddown-routine')}>
+              <Text style={styles.emptyButtonText}>Set Up Routine</Text>
+            </TouchableOpacity>
+          </View>
+        ) : allDone ? (
           <View style={styles.allDoneContainer}>
             <Text style={styles.allDoneEmoji}>🌙</Text>
             <Text style={styles.allDoneTitle}>Routine Complete!</Text>
@@ -370,6 +379,33 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   allDoneButtonText: {
+    ...typography.body,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.dark,
+  },
+
+  // Empty state
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: spacing.xl * 2,
+    paddingHorizontal: spacing.lg,
+  },
+  emptyEmoji: { fontSize: 72, marginBottom: spacing.lg },
+  emptyTitle: { ...typography.h2, color: colors.cream, marginBottom: spacing.md },
+  emptyText: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: spacing.xl,
+  },
+  emptyButton: {
+    backgroundColor: colors.cream,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.md,
+  },
+  emptyButtonText: {
     ...typography.body,
     fontFamily: 'Fredoka-Medium',
     color: colors.dark,

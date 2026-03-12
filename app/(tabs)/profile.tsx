@@ -14,7 +14,7 @@ export default function ProfileScreen() {
   const [editingTeddyName, setEditingTeddyName] = useState('');
   const [showTeddyModal, setShowTeddyModal] = useState(false);
 
-  const userName = 'Clara Lu';
+  const userName = 'The Screenager';
   const currentStreak = 5;
 
   const openTeddyModal = () => {
@@ -105,7 +105,7 @@ export default function ProfileScreen() {
           <ChevronRight color={colors.textMuted} size={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem}>
+        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/schedule')}>
           <View style={styles.settingIcon}>
             <Moon color={colors.cream} size={20} />
           </View>

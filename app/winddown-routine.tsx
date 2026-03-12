@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   routineItemMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.sm,
   },
   routineItemMetaText: {
     ...typography.caption,
@@ -613,11 +613,6 @@ const styles = StyleSheet.create({
   routineItemMetaDot: {
     ...typography.caption,
     color: colors.border,
-  },
-  routineItemMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
   },
   routineItemTime: {
     ...typography.caption,

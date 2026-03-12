@@ -53,6 +53,7 @@ export default function RootLayout() {
                 <Stack.Screen name="login" />
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="progress" />
                 <Stack.Screen name="checkin" />
                 <Stack.Screen name="schedule" />
                 <Stack.Screen name="winddown" />
