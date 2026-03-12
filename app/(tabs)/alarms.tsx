@@ -336,6 +336,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     opacity: 1,
+    zIndex: 10,
+    elevation: 10,
   },
   bottomTextureImage: {
     position: 'absolute',
@@ -345,6 +347,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
