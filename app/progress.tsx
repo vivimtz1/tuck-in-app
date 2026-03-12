@@ -256,17 +256,9 @@ export default function ProgressScreen() {
                 onPress={() => setActiveInsight(item)}
                 activeOpacity={0.8}
               >
-                <View style={styles.clinicalCardTop}>
-                  <Text style={styles.clinicalEmoji}>{item.emoji}</Text>
-                  <Text style={styles.clinicalTitle}>{item.title}</Text>
-                </View>
+                <Text style={styles.clinicalTitle}>{item.title}</Text>
                 <Text style={styles.clinicalFact} numberOfLines={2}>{item.fact}</Text>
-                <View style={styles.clinicalCardFooter}>
-                  <View style={styles.clinicalSourceBadge}>
-                    <Text style={styles.clinicalSourceText}>📄 {item.source}</Text>
-                  </View>
-                  <Text style={styles.clinicalReadMore}>Read more →</Text>
-                </View>
+                <Text style={styles.clinicalReadMore}>Read more →</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -325,13 +317,11 @@ export default function ProgressScreen() {
                 <View style={styles.insightModalHandle} />
 
                 <View style={styles.insightModalHeader}>
-                  <Text style={styles.insightModalEmoji}>{activeInsight.emoji}</Text>
+                  <Text style={styles.insightModalTitle}>{activeInsight.title}</Text>
                   <TouchableOpacity onPress={() => setActiveInsight(null)} style={styles.insightModalClose}>
                     <X color={colors.textMuted} size={22} />
                   </TouchableOpacity>
                 </View>
-
-                <Text style={styles.insightModalTitle}>{activeInsight.title}</Text>
 
                 <View style={styles.insightModalDivider} />
 
@@ -626,6 +616,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.blue,
     fontFamily: 'Fredoka-Medium',
+    flexShrink: 0,
   },
   // Insight modal
   insightModalOverlay: {
@@ -651,11 +642,8 @@ const styles = StyleSheet.create({
   insightModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  insightModalEmoji: {
-    fontSize: 44,
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   insightModalClose: {
     padding: spacing.xs,
@@ -663,7 +651,8 @@ const styles = StyleSheet.create({
   insightModalTitle: {
     ...typography.h2,
     color: colors.cream,
-    marginBottom: spacing.md,
+    flex: 1,
+    marginRight: spacing.md,
   },
   insightModalDivider: {
     height: 1,
@@ -720,6 +709,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.xs,
+    flex: 1,
   },
   clinicalEmoji: {
     fontSize: 18,
@@ -728,7 +718,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.cream,
     fontFamily: 'Fredoka-Medium',
-    flex: 1,
+    marginBottom: spacing.xs,
   },
   clinicalFact: {
     fontSize: 13,
@@ -745,11 +735,15 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
+    flex: 1,
+    flexShrink: 1,
+    marginRight: spacing.sm,
   },
   clinicalSourceText: {
     fontSize: 11,
     fontFamily: 'Fredoka-Regular',
     color: colors.blue,
+    flexShrink: 1,
   },
   disclaimer: {
     fontSize: 11,
