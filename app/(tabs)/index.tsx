@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Image, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BlurView } from 'expo-blur';
 import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, Headphones, X, Check } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
@@ -102,6 +102,16 @@ export default function HomeScreen() {
     return date;
   };
 
+  const parseDisplayTimeToMinutes = (timeStr: string): number => {
+    const [time, period] = timeStr.split(' ');
+    const [hoursStr, minutesStr] = time.split(':');
+    let hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
   const generateSchedule = (bedtimeStr: string): ScheduleItem[] => {
     const bedtimeDate = parseTimeString(bedtimeStr);
     const schedule: ScheduleItem[] = [];
@@ -117,13 +127,21 @@ export default function HomeScreen() {
   const schedule = generateSchedule(bedtime);
   const now = currentTime;
 
-  const bedtimeDate = parseTimeString(bedtime);
-  const minutesUntilBedtime = (bedtimeDate.getTime() - now.getTime()) / (1000 * 60);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const bedtimeMinutes = parseDisplayTimeToMinutes(bedtime);
+  const wakeTimeMinutes = parseDisplayTimeToMinutes(wakeTime);
+
+  const minutesUntilBedtime = ((bedtimeMinutes - nowMinutes) + 24 * 60) % (24 * 60);
   const isWithin15Minutes = minutesUntilBedtime >= 0 && minutesUntilBedtime <= 15;
 
-  const wakeTimeDate = parseTimeString(wakeTime);
-  if (wakeTimeDate < bedtimeDate) wakeTimeDate.setDate(wakeTimeDate.getDate() + 1);
-  const isBetweenBedtimeAndWake = now >= bedtimeDate || now < wakeTimeDate;
+  let isBetweenBedtimeAndWake: boolean;
+  if (bedtimeMinutes < wakeTimeMinutes) {
+    // Sleep window does NOT cross midnight (same-day)
+    isBetweenBedtimeAndWake = nowMinutes >= bedtimeMinutes && nowMinutes < wakeTimeMinutes;
+  } else {
+    // Typical case: sleep window crosses midnight
+    isBetweenBedtimeAndWake = nowMinutes >= bedtimeMinutes || nowMinutes < wakeTimeMinutes;
+  }
 
   const nextItem = schedule.find(item => item.time > now) || schedule[0];
 
@@ -202,8 +220,18 @@ export default function HomeScreen() {
 
   const sleepLogTitle = activeSession ? "You're Sleeping..." : "Track Your Sleep";
 
-  const isAwake = !(isWithin15Minutes && !isBetweenBedtimeAndWake);
-  const isAsleep = isBetweenBedtimeAndWake || activeSession;
+  const isAsleep = isBetweenBedtimeAndWake || !!activeSession;
+  const isAwake = !isAsleep;
+
+  const teddyFade = useRef(new Animated.Value(isAsleep ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(teddyFade, {
+      toValue: isAsleep ? 1 : 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, [isAsleep, teddyFade]);
 
   return (
     <View style={styles.container}>
@@ -225,24 +253,35 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Good Night</Text>
         </View>
 
-        {isAsleep && (
-          <View style={styles.teddyAwakeWrap}>
-            <Image
-              source={require('@/assets/teddy-asleep.png')}
-              style={styles.teddyAwakeImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
-        {isAwake && !isAsleep && (
-          <View style={styles.teddyAwakeWrap}>
-            <Image
-              source={require('@/assets/teddy-awake.png')}
-              style={styles.teddyAwakeImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+        <View style={styles.teddyAwakeWrap} pointerEvents="none">
+          <Animated.Image
+            source={require('@/assets/teddy-awake.png')}
+            style={[
+              styles.teddyAwakeImage,
+              {
+                opacity: teddyFade.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 0],
+                }),
+              },
+            ]}
+            resizeMode="contain"
+          />
+          <Animated.Image
+            source={require('@/assets/teddy-asleep.png')}
+            style={[
+              styles.teddyAwakeImage,
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                opacity: teddyFade,
+              },
+            ]}
+            resizeMode="contain"
+          />
+        </View>
 
         {isWithin15Minutes && !isBetweenBedtimeAndWake ? (
           <Card style={styles.bedtimeCard}>
