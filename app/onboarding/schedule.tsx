@@ -117,7 +117,8 @@ export default function ScheduleScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color={colors.cream} size={24} />
+          <ArrowLeft color={colors.cream} size={20} />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: '50%' }]} />
@@ -200,12 +201,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.cardBg,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  backText: {
+    ...typography.body,
+    color: colors.cream,
   },
   progressBar: {
     flex: 1,
