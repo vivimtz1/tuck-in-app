@@ -30,6 +30,12 @@
         "projectId": "011803b6-f0e1-42df-85a2-8967f2c5b813"
       }
     },
-    "android": {}
+    "android": {},
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/011803b6-f0e1-42df-85a2-8967f2c5b813"
+    }
   }
 }
