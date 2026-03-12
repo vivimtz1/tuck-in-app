@@ -227,16 +227,6 @@ export default function HomeScreen() {
 
         {isAsleep && (
           <View style={styles.teddyAwakeWrap}>
-            {Platform.OS !== 'web' ? (
-              <BlurView
-                intensity={22}
-                tint="dark"
-                style={StyleSheet.absoluteFillObject}
-              />
-            ) : (
-              <View style={[StyleSheet.absoluteFillObject, styles.sleepGlassFallback]} />
-            )}
-            <View style={[StyleSheet.absoluteFillObject, styles.sleepGlassTint]} />
             <Image
               source={require('@/assets/teddy-asleep.png')}
               style={styles.teddyAwakeImage}
@@ -576,14 +566,8 @@ const styles = StyleSheet.create({
   teddyEmoji: { fontSize: 18 },
   currentTime: { ...typography.body, color: colors.textSecondary },
   greeting: { ...typography.h1, color: colors.cream },
-  teddyAwakeWrap: { marginHorizontal: spacing.lg, marginBottom: spacing.lg, overflow: 'hidden', borderRadius: borderRadius.lg },
-  teddyAwakeImage: { width: '100%', height: 220, backgroundColor: colors.surface, borderRadius: borderRadius.lg, zIndex: 1 },
-  sleepGlassFallback: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  sleepGlassTint: {
-    backgroundColor: 'rgba(160, 196, 229, 0.06)',
-  },
+  teddyAwakeWrap: { marginHorizontal: spacing.lg, marginBottom: spacing.lg },
+  teddyAwakeImage: { width: '100%', height: 220, backgroundColor: 'transparent' },
   bedtimeCard: { marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.blue, padding: spacing.lg },
   bedtimeHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   bedtimeTitle: { ...typography.h3, color: colors.dark },

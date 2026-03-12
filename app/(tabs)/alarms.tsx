@@ -5,7 +5,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useRef } from 'react';
 import { Plus, AlarmClock } from 'lucide-react-native';
 import { colors, spacing, typography } from '@/constants/theme';
-import { Card } from '@/components/Card';
 import { AlarmCard } from '@/components/AlarmCard';
 import { AlarmEditModal } from '@/components/AlarmEditModal';
 import { supabase } from '@/lib/supabase';
@@ -298,14 +297,6 @@ export default function AlarmsScreen() {
           </View>
         )}
 
-        {!userId && alarms.length > 0 && (
-          <Card style={styles.signInCard}>
-            <Text style={styles.signInText}>
-              Sign in to sync your alarms across devices
-            </Text>
-          </Card>
-        )}
-
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
@@ -348,6 +339,8 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: 'transparent',
+    zIndex: 11,
+    elevation: 11,
   },
   header: {
     flexDirection: 'row',
@@ -419,17 +412,6 @@ const styles = StyleSheet.create({
   },
   alarmList: {
     gap: 0,
-  },
-  signInCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xl,
-    alignItems: 'center',
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-  },
-  signInText: {
-    ...typography.caption,
-    color: colors.textMuted,
   },
   swipeActions: {
     flexDirection: 'row',
