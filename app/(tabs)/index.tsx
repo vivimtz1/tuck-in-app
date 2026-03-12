@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, Headphones, X } from 'lucide-react-native';
+import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, Headphones, X, Check } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { router } from 'expo-router';
@@ -36,7 +36,7 @@ export default function HomeScreen() {
   const [tonightBedtime, setTonightBedtime] = useState({ hour: 11, minute: '00', period: 'PM' });
   const [tonightWakeTime, setTonightWakeTime] = useState({ hour: 7, minute: '30', period: 'AM' });
 
-  const { getEnabledItems } = useWindDown();
+  const { getEnabledItems, checkedItems, toggleCheckedItem, isRoutineComplete } = useWindDown();
   const enabledItems = getEnabledItems();
   const hasNoWindDownRoutine = enabledItems.length === 0;
 
@@ -254,53 +254,93 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         ) : (
-          <Card style={styles.scheduleCard}>
+          <Card style={[styles.scheduleCard, isRoutineComplete && styles.scheduleCardComplete]}>
             <TouchableOpacity
               style={styles.scheduleHeader}
               onPress={() => setIsTimelineExpanded(!isTimelineExpanded)}
             >
               <View style={styles.scheduleHeaderLeft}>
-                <Clock color={colors.blue} size={24} />
+                {isRoutineComplete
+                  ? <Check color={colors.success} size={24} strokeWidth={2.5} />
+                  : <Clock color={colors.blue} size={24} />
+                }
                 <View style={styles.scheduleHeaderText}>
-                  <Text style={styles.scheduleTitle}>Wind-Down Routine</Text>
+                  <Text style={[styles.scheduleTitle, isRoutineComplete && styles.scheduleTitleComplete]}>
+                    {isRoutineComplete ? 'Routine Complete! 🌙' : 'Wind-Down Routine'}
+                  </Text>
                   <Text style={styles.scheduleSubtitle}>
-                    {isTimelineExpanded ? 'Tonight\'s schedule' : `Next: ${nextItem.title} · ${formatScheduleTime(nextItem.time)}`}
+                    {isRoutineComplete
+                      ? 'All done for tonight — sweet dreams!'
+                      : isTimelineExpanded
+                        ? 'Tonight\'s schedule'
+                        : `Next: ${nextItem.title} · ${formatScheduleTime(nextItem.time)}`
+                    }
                   </Text>
                 </View>
               </View>
               <View style={styles.scheduleExpandHint}>
                 <Text style={styles.scheduleExpandHintText}>{isTimelineExpanded ? 'Hide' : 'View'}</Text>
                 {isTimelineExpanded ? (
-                  <ChevronUp color={colors.blue} size={18} />
+                  <ChevronUp color={isRoutineComplete ? colors.success : colors.blue} size={18} />
                 ) : (
-                  <ChevronDown color={colors.blue} size={18} />
+                  <ChevronDown color={isRoutineComplete ? colors.success : colors.blue} size={18} />
                 )}
               </View>
             </TouchableOpacity>
 
             {isTimelineExpanded && (
               <>
+                {/* Progress summary */}
+                {(() => {
+                  const routineItems = schedule.filter(i => i.id !== 'bedtime');
+                  const done = routineItems.filter(i => checkedItems.has(i.id)).length;
+                  const total = routineItems.length;
+                  if (total === 0) return null;
+                  return (
+                    <View style={styles.timelineProgress}>
+                      <View style={styles.timelineProgressBar}>
+                        <View style={[styles.timelineProgressFill, { width: `${(done / total) * 100}%` }]} />
+                      </View>
+                      <Text style={styles.timelineProgressText}>{done}/{total} done</Text>
+                    </View>
+                  );
+                })()}
+
                 <View style={styles.timeline}>
                   {schedule.map((item, index) => {
                     const isLast = index === schedule.length - 1;
                     const itemIsPast = isPast(item);
                     const itemIsNext = isNext(item);
+                    const isBedtime = item.id === 'bedtime';
+                    const isChecked = checkedItems.has(item.id);
                     return (
                       <View key={item.id} style={styles.timelineItem}>
                         <View style={styles.timelineLeft}>
-                          <View style={[styles.timelineDot, itemIsPast && styles.timelineDotPast, itemIsNext && styles.timelineDotNext]}>
-                            <Text style={styles.timelineIcon}>{item.icon}</Text>
+                          <View style={[styles.timelineDot, itemIsPast && styles.timelineDotPast, itemIsNext && styles.timelineDotNext, isChecked && styles.timelineDotChecked]}>
+                            {isChecked && !isBedtime
+                              ? <Check color={colors.dark} size={14} strokeWidth={3} />
+                              : <Text style={styles.timelineIcon}>{item.icon}</Text>
+                            }
                           </View>
-                          {!isLast && <View style={[styles.timelineLine, itemIsPast && styles.timelineLinePast]} />}
+                          {!isLast && <View style={[styles.timelineLine, (itemIsPast || isChecked) && styles.timelineLinePast]} />}
                         </View>
                         <View style={styles.timelineContent}>
-                          <Text style={[styles.timelineTitle, itemIsPast && styles.timelineTitlePast, itemIsNext && styles.timelineTitleNext]}>
+                          <Text style={[styles.timelineTitle, itemIsPast && styles.timelineTitlePast, itemIsNext && styles.timelineTitleNext, isChecked && styles.timelineTitleChecked]}>
                             {item.title}
                           </Text>
                           <Text style={[styles.timelineTime, itemIsPast && styles.timelineTimePast]}>
                             {formatScheduleTime(item.time)}
                           </Text>
                         </View>
+                        {!isBedtime && (
+                          <TouchableOpacity
+                            style={[styles.timelineCheckbox, isChecked && styles.timelineCheckboxDone]}
+                            onPress={() => toggleCheckedItem(item.id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            {isChecked && <Check color={colors.dark} size={12} strokeWidth={3} />}
+                          </TouchableOpacity>
+                        )}
                       </View>
                     );
                   })}
@@ -515,6 +555,8 @@ const styles = StyleSheet.create({
   divider: { width: 1, backgroundColor: colors.border, marginHorizontal: spacing.md },
   sectionTitle: { ...typography.h3, color: colors.cream, marginHorizontal: spacing.lg, marginBottom: spacing.md },
   scheduleCard: { marginHorizontal: spacing.lg, marginBottom: spacing.lg },
+  scheduleCardComplete: { borderWidth: 1, borderColor: colors.success + '60' },
+  scheduleTitleComplete: { color: colors.success },
   windDownEmptyCard: {
     marginHorizontal: spacing.lg, marginBottom: spacing.lg,
     flexDirection: 'row', alignItems: 'flex-start',
@@ -559,11 +601,37 @@ const styles = StyleSheet.create({
   scheduleTitle: { ...typography.h3, color: colors.cream, marginBottom: 2 },
   scheduleSubtitle: { ...typography.caption, color: colors.textMuted },
   timeline: { marginTop: spacing.lg, paddingLeft: spacing.md },
-  timelineItem: { flexDirection: 'row', marginBottom: spacing.lg },
+  timelineProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  timelineProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
+  },
+  timelineProgressFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: borderRadius.full,
+  },
+  timelineProgressText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  timelineItem: { flexDirection: 'row', marginBottom: spacing.lg, alignItems: 'flex-start' },
   timelineLeft: { alignItems: 'center', marginRight: spacing.md, width: 32 },
   timelineDot: { width: 32, height: 32, borderRadius: borderRadius.full, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.border },
   timelineDotPast: { backgroundColor: colors.success + '30', borderColor: colors.success },
   timelineDotNext: { backgroundColor: colors.blue + '30', borderColor: colors.blue, borderWidth: 3 },
+  timelineDotChecked: { backgroundColor: colors.success, borderColor: colors.success },
   timelineIcon: { fontSize: 16 },
   timelineLine: { width: 2, flex: 1, backgroundColor: colors.border, marginTop: spacing.xs, minHeight: 20 },
   timelineLinePast: { backgroundColor: colors.success },
@@ -571,6 +639,22 @@ const styles = StyleSheet.create({
   timelineTitle: { ...typography.body, color: colors.textMuted, fontFamily: 'Fredoka-Regular', marginBottom: 2 },
   timelineTitlePast: { color: colors.textMuted, opacity: 0.6 },
   timelineTitleNext: { color: colors.cream, fontFamily: 'Fredoka-Medium' },
+  timelineTitleChecked: { textDecorationLine: 'line-through', color: colors.textMuted, opacity: 0.7 },
+  timelineCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+    marginTop: 2,
+  },
+  timelineCheckboxDone: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
   timelineTime: { ...typography.caption, color: colors.textMuted },
   timelineTimePast: { opacity: 0.6 },
   timelineEditButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
