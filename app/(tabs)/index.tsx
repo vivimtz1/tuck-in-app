@@ -374,24 +374,12 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </>
           ) : (
-            <View style={styles.sleepLogButtons}>
-              <View style={styles.sleepLogOption}>
-                <Text style={styles.sleepLogOptionLabel}>Heading to bed now?</Text>
-                <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
-                  <Moon color={colors.cream} size={16} />
-                  <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
-                </TouchableOpacity>
-                <Text style={styles.sleepLogOptionHint}>Start tracking tonight's sleep</Text>
-              </View>
-              <View style={styles.sleepLogSeparator} />
-              <View style={styles.sleepLogOption}>
-                <Text style={styles.sleepLogOptionLabel}>Already woke up?</Text>
-                <TouchableOpacity style={styles.wakeButtonOutline} onPress={logWakeTime}>
-                  <Sun color={colors.gold} size={16} />
-                  <Text style={styles.wakeButtonOutlineText}>Just Woke Up ☀️</Text>
-                </TouchableOpacity>
-                <Text style={styles.sleepLogOptionHint}>Log last night's sleep</Text>
-              </View>
+            <View style={styles.sleepLogOption}>
+              <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
+                <Moon color={colors.cream} size={16} />
+                <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+              </TouchableOpacity>
+              <Text style={styles.sleepLogOptionHint}>Tap when you're heading to bed to start tracking</Text>
             </View>
           )}
         </Card>
@@ -588,7 +576,7 @@ const styles = StyleSheet.create({
   timelineEditButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
   timelineEditText: { ...typography.body, color: colors.blue, fontFamily: 'Fredoka-Medium' },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: spacing.lg, gap: spacing.md, marginBottom: spacing.md },
-  actionCard: { width: '47%', backgroundColor: colors.cardBg, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
+  actionCard: { flex: 1, flexBasis: '47%', backgroundColor: colors.cardBg, borderRadius: borderRadius.lg, padding: spacing.md, gap: spacing.sm },
   actionIcon: { width: 40, height: 40, borderRadius: borderRadius.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   actionTitle: { ...typography.body, color: colors.cream, fontFamily: 'Fredoka-Medium', fontSize: 14 },
   actionDescription: { fontSize: 12, color: colors.textMuted, fontFamily: 'Fredoka-Regular' },
