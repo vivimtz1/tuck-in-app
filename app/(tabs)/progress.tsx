@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Linking, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Calendar, TrendingUp, Award, Flame, FlaskConical, ArrowLeft } from 'lucide-react-native';
+import { Calendar, TrendingUp, Award, Flame, FlaskConical, ArrowLeft, ExternalLink, X } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { useSleepLog } from '@/contexts/SleepLogContext';
@@ -13,23 +13,60 @@ const CHART_HEIGHT = 180;
 
 // ─── Hardcoded demo data ─────────────────────────────────────────────────────
 
-const DEMO_STATS = {
-  streak: 12,
-  goalsThisWeek: 5,
-  totalThisWeek: 7,
-  avgSleepHours: 7.5,
-  consistency: 86,
+const PERIOD_DATA = {
+  week: {
+    chartTitle: 'Sleep Duration (This Week)',
+    stats: { streak: 12, goalsHit: '5/7', avgSleep: '7.5h', consistency: '86%' },
+    bars: [
+      { day: 'M', hours: 7.5, goalMet: true },
+      { day: 'T', hours: 6.8, goalMet: false },
+      { day: 'W', hours: 8.1, goalMet: true },
+      { day: 'T', hours: 7.3, goalMet: true },
+      { day: 'F', hours: 7.9, goalMet: true },
+      { day: 'S', hours: 6.4, goalMet: false },
+      { day: 'S', hours: 7.6, goalMet: true },
+    ],
+  },
+  month: {
+    chartTitle: 'Sleep Duration (This Month)',
+    stats: { streak: 12, goalsHit: '14/30', avgSleep: '6.7h', consistency: '61%' },
+    bars: [
+      { day: '3/1', hours: 5.8, goalMet: false },
+      { day: '3/3', hours: 6.2, goalMet: false },
+      { day: '3/5', hours: 6.9, goalMet: false },
+      { day: '3/7', hours: 5.5, goalMet: false },
+      { day: '3/9', hours: 7.1, goalMet: true },
+      { day: '3/11', hours: 6.4, goalMet: false },
+      { day: '3/13', hours: 7.4, goalMet: true },
+      { day: '3/15', hours: 7.8, goalMet: true },
+      { day: '3/17', hours: 6.0, goalMet: false },
+      { day: '3/19', hours: 7.2, goalMet: true },
+      { day: '3/21', hours: 7.6, goalMet: true },
+      { day: '3/23', hours: 5.9, goalMet: false },
+      { day: '3/25', hours: 8.0, goalMet: true },
+      { day: '3/27', hours: 7.3, goalMet: true },
+      { day: 'Now', hours: 7.5, goalMet: true },
+    ],
+  },
+  year: {
+    chartTitle: 'Sleep Duration (This Year)',
+    stats: { streak: 12, goalsHit: '164/365', avgSleep: '6.2h', consistency: '45%' },
+    bars: [
+      { day: 'Jan', hours: 5.4, goalMet: false },
+      { day: 'Feb', hours: 5.8, goalMet: false },
+      { day: 'Mar', hours: 6.1, goalMet: false },
+      { day: 'Apr', hours: 5.6, goalMet: false },
+      { day: 'May', hours: 6.3, goalMet: false },
+      { day: 'Jun', hours: 6.0, goalMet: false },
+      { day: 'Jul', hours: 6.7, goalMet: false },
+      { day: 'Aug', hours: 6.5, goalMet: false },
+      { day: 'Sep', hours: 7.0, goalMet: true },
+      { day: 'Oct', hours: 7.3, goalMet: true },
+      { day: 'Nov', hours: 7.1, goalMet: true },
+      { day: 'Dec', hours: 7.5, goalMet: true },
+    ],
+  },
 };
-
-const DEMO_WEEK_DATA = [
-  { day: 'M', hours: 7.5, goalMet: true,  hasData: true },
-  { day: 'T', hours: 6.8, goalMet: false, hasData: true },
-  { day: 'W', hours: 8.1, goalMet: true,  hasData: true },
-  { day: 'T', hours: 7.3, goalMet: true,  hasData: true },
-  { day: 'F', hours: 7.9, goalMet: true,  hasData: true },
-  { day: 'S', hours: 6.4, goalMet: false, hasData: true },
-  { day: 'S', hours: 7.6, goalMet: true,  hasData: true },
-];
 
 const DEMO_LAST_NIGHT = { hours: 7, minutes: 33 };
 
@@ -38,19 +75,25 @@ const CLINICAL_INSIGHTS = [
     emoji: '❤️',
     title: '7–9 Hours Protects Your Heart',
     fact: 'Adults who consistently sleep 7–9 hours are significantly less likely to develop heart disease, hypertension, and type 2 diabetes.',
+    expandedFact: 'Chronic sleep deprivation raises blood pressure, increases inflammation, and disrupts glucose metabolism. Studies show sleeping under 6 hours raises heart disease risk by 48% and stroke risk by 15%. The good news: just one week of consistent 7–9 hour nights can measurably lower these biomarkers.',
     source: 'CDC — Sleep & Chronic Disease Report',
+    articleUrl: 'https://www.cdc.gov/sleep/data-research/facts-stats/adults-sleep-facts-and-stats.html',
   },
   {
     emoji: '🧠',
     title: 'Sleep Builds Your Brain',
     fact: 'During deep sleep (N3 stage), your brain consolidates memories and clears metabolic waste linked to cognitive decline — improving next-day recall by up to 40%.',
+    expandedFact: 'During slow-wave sleep, the glymphatic system flushes out toxic proteins including beta-amyloid, a key marker of Alzheimer\'s disease. REM sleep then strengthens emotional memories and creative connections. Skipping even one night disrupts this two-phase cleaning and learning cycle, with effects lasting days.',
     source: 'Walker, M. — Why We Sleep; Nature Reviews Neuroscience',
+    articleUrl: 'https://www.sleepfoundation.org/how-sleep-works/memory-and-sleep',
   },
   {
     emoji: '⏰',
     title: 'Consistency Is the Secret',
     fact: 'Keeping your bedtime within a 30-minute window every night strengthens your circadian rhythm and measurably improves both sleep quality and daytime alertness.',
+    expandedFact: 'Your circadian clock regulates dozens of hormones, body temperature, and cellular repair processes on a ~24-hour cycle. Irregular sleep — even on weekends — creates "social jet lag" that disrupts this rhythm. Consistent sleep and wake times, even on days off, is the single most impactful habit for improving sleep quality long-term.',
     source: 'National Sleep Foundation, 2023',
+    articleUrl: 'https://www.thensf.org/sleep-tips/',
   },
 ];
 
@@ -59,6 +102,7 @@ const CLINICAL_INSIGHTS = [
 export default function ProgressScreen() {
   const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
+  const [activeInsight, setActiveInsight] = useState<typeof CLINICAL_INSIGHTS[number] | null>(null);
   const { celebration, dismissCelebration, lastEntry } = useSleepLog();
 
   // Use real logged duration if available, otherwise show demo numbers
@@ -70,6 +114,7 @@ export default function ProgressScreen() {
     : DEMO_LAST_NIGHT.minutes;
   const lastNightGoalMet = lastEntry ? lastEntry.goalMet : true;
 
+  const periodData = PERIOD_DATA[selectedPeriod];
   const maxHours = 10;
 
   return (
@@ -110,32 +155,32 @@ export default function ProgressScreen() {
         <View style={styles.statsGrid}>
           <Card style={styles.statCard}>
             <View style={styles.statIcon}><Flame color={colors.gold} size={24} /></View>
-            <Text style={styles.statValue}>{DEMO_STATS.streak}</Text>
+            <Text style={styles.statValue}>{periodData.stats.streak}</Text>
             <Text style={styles.statLabel}>Day Streak</Text>
           </Card>
 
           <Card style={styles.statCard}>
             <View style={styles.statIcon}><Award color={colors.blue} size={24} /></View>
-            <Text style={styles.statValue}>{DEMO_STATS.goalsThisWeek}/{DEMO_STATS.totalThisWeek}</Text>
+            <Text style={styles.statValue}>{periodData.stats.goalsHit}</Text>
             <Text style={styles.statLabel}>Goals Hit</Text>
           </Card>
 
           <Card style={styles.statCard}>
             <View style={styles.statIcon}><TrendingUp color={colors.cream} size={24} /></View>
-            <Text style={styles.statValue}>{DEMO_STATS.avgSleepHours}h</Text>
+            <Text style={styles.statValue}>{periodData.stats.avgSleep}</Text>
             <Text style={styles.statLabel}>Avg Sleep</Text>
           </Card>
 
           <Card style={styles.statCard}>
             <View style={styles.statIcon}><Calendar color={colors.success} size={24} /></View>
-            <Text style={styles.statValue}>{DEMO_STATS.consistency}%</Text>
+            <Text style={styles.statValue}>{periodData.stats.consistency}</Text>
             <Text style={styles.statLabel}>Consistency</Text>
           </Card>
         </View>
 
         {/* Chart */}
         <Card style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Sleep Duration (This Week)</Text>
+          <Text style={styles.chartTitle}>{periodData.chartTitle}</Text>
           <View style={styles.chart}>
             <View style={styles.chartGrid}>
               {[10, 8, 6, 4, 2].map(hour => (
@@ -145,15 +190,17 @@ export default function ProgressScreen() {
                 </View>
               ))}
             </View>
-            <View style={styles.chartBars}>
-              {DEMO_WEEK_DATA.map((data, index) => {
+            <View style={[styles.chartBars, periodData.bars.length > 9 && styles.chartBarsDense]}>
+              {periodData.bars.map((data, index) => {
                 const barHeight = Math.max((data.hours / maxHours) * (CHART_HEIGHT - 20), 6);
                 return (
                   <View key={index} style={styles.barContainer}>
                     <View style={styles.barWrapper}>
                       <View style={[styles.bar, data.goalMet && styles.barSuccess, { height: barHeight }]} />
                     </View>
-                    <Text style={styles.barLabel}>{data.day}</Text>
+                    <Text style={[styles.barLabel, periodData.bars.length > 9 && styles.barLabelDense]}>
+                      {data.day}
+                    </Text>
                   </View>
                 );
               })}
@@ -203,18 +250,24 @@ export default function ProgressScreen() {
 
           <View style={styles.clinicalCards}>
             {CLINICAL_INSIGHTS.map((item, i) => (
-              <View key={i} style={styles.clinicalCard}>
+              <TouchableOpacity
+                key={i}
+                style={styles.clinicalCard}
+                onPress={() => setActiveInsight(item)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.clinicalCardTop}>
                   <Text style={styles.clinicalEmoji}>{item.emoji}</Text>
                   <Text style={styles.clinicalTitle}>{item.title}</Text>
                 </View>
-                <Text style={styles.clinicalFact}>{item.fact}</Text>
-                <View style={styles.clinicalSourceRow}>
+                <Text style={styles.clinicalFact} numberOfLines={2}>{item.fact}</Text>
+                <View style={styles.clinicalCardFooter}>
                   <View style={styles.clinicalSourceBadge}>
                     <Text style={styles.clinicalSourceText}>📄 {item.source}</Text>
                   </View>
+                  <Text style={styles.clinicalReadMore}>Read more →</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -256,6 +309,55 @@ export default function ProgressScreen() {
         durationMinutes={lastEntry?.durationMinutes ?? 450}
         onDismiss={dismissCelebration}
       />
+
+      {/* Insight detail modal */}
+      <Modal
+        visible={activeInsight !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActiveInsight(null)}
+      >
+        <Pressable style={styles.insightModalOverlay} onPress={() => setActiveInsight(null)}>
+          <Pressable style={styles.insightModalSheet} onPress={e => e.stopPropagation()}>
+            {activeInsight && (
+              <>
+                <View style={styles.insightModalHandle} />
+
+                <View style={styles.insightModalHeader}>
+                  <Text style={styles.insightModalEmoji}>{activeInsight.emoji}</Text>
+                  <TouchableOpacity onPress={() => setActiveInsight(null)} style={styles.insightModalClose}>
+                    <X color={colors.textMuted} size={22} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.insightModalTitle}>{activeInsight.title}</Text>
+
+                <View style={styles.insightModalDivider} />
+
+                <Text style={styles.insightModalFact}>{activeInsight.expandedFact}</Text>
+
+                <View style={styles.insightModalSourceBadge}>
+                  <FlaskConical color={colors.blue} size={13} />
+                  <Text style={styles.insightModalSourceText}>{activeInsight.source}</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.insightModalArticleBtn}
+                  onPress={() => Linking.openURL(activeInsight.articleUrl)}
+                  activeOpacity={0.85}
+                >
+                  <ExternalLink color={colors.dark} size={16} />
+                  <Text style={styles.insightModalArticleBtnText}>Read Full Article</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.insightModalDisclaimer}>
+                  For educational purposes only. Consult a healthcare provider for personalized advice.
+                </Text>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -403,6 +505,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.xs,
   },
+  chartBarsDense: {
+    paddingLeft: 32,
+  },
+  barLabelDense: {
+    fontSize: 8,
+  },
   chartLegend: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -506,6 +614,105 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.blue + '33',
+  },
+  clinicalCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+  clinicalReadMore: {
+    ...typography.caption,
+    color: colors.blue,
+    fontFamily: 'Fredoka-Medium',
+  },
+  // Insight modal
+  insightModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  insightModalSheet: {
+    backgroundColor: colors.cardBg,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.xl,
+    paddingBottom: spacing.xl + 8,
+  },
+  insightModalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  insightModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  insightModalEmoji: {
+    fontSize: 44,
+  },
+  insightModalClose: {
+    padding: spacing.xs,
+  },
+  insightModalTitle: {
+    ...typography.h2,
+    color: colors.cream,
+    marginBottom: spacing.md,
+  },
+  insightModalDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  insightModalFact: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: spacing.lg,
+  },
+  insightModalSourceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.blue + '20',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  insightModalSourceText: {
+    fontSize: 12,
+    fontFamily: 'Fredoka-Regular',
+    color: colors.blue,
+  },
+  insightModalArticleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.cream,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+  },
+  insightModalArticleBtnText: {
+    ...typography.body,
+    fontFamily: 'Fredoka-Medium',
+    color: colors.dark,
+  },
+  insightModalDisclaimer: {
+    fontSize: 11,
+    fontFamily: 'Fredoka-Regular',
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 16,
+    opacity: 0.7,
   },
   clinicalCardTop: {
     flexDirection: 'row',

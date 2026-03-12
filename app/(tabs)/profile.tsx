@@ -99,8 +99,8 @@ export default function ProfileScreen() {
             <TrendingUp color={colors.cream} size={20} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>Progress</Text>
-            <Text style={styles.settingDescription}>View sleep stats and streaks</Text>
+            <Text style={styles.settingTitle}>Progress and Insights</Text>
+            <Text style={styles.settingDescription}>Sleep stats, streaks, and personalized insights</Text>
           </View>
           <ChevronRight color={colors.textMuted} size={20} />
         </TouchableOpacity>

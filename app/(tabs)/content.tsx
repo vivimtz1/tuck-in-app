@@ -25,7 +25,7 @@ import {
   Mic,
   Sparkles,
   ListMusic,
-  StopCircle,
+  SkipForward,
 } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 
@@ -234,6 +234,12 @@ export default function ContentScreen() {
     };
   }, []);
 
+  // Queue ref so callbacks always see latest queue state
+  const queueRef = useRef<ContentItem[]>([]);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  const currentItemRef = useRef<ContentItem | null>(null);
+  useEffect(() => { currentItemRef.current = currentItem; }, [currentItem]);
+
   const stopCurrent = async () => {
     if (soundRef.current) {
       await soundRef.current.unloadAsync();
@@ -243,26 +249,12 @@ export default function ContentScreen() {
     setIsPlaying(false);
   };
 
-  const handlePlay = async (item: ContentItem) => {
-    // Tap same item → toggle pause/play
-    if (currentItem?.id === item.id) {
-      if (isPlaying) {
-        await soundRef.current?.pauseAsync();
-        setIsPlaying(false);
-      } else {
-        await soundRef.current?.playAsync();
-        setIsPlaying(true);
-      }
-      return;
-    }
-
-    // New item — unload previous
+  const playItem = async (item: ContentItem) => {
     setIsLoading(true);
     if (soundRef.current) {
       await soundRef.current.unloadAsync();
       soundRef.current = null;
     }
-
     try {
       const { sound } = await Audio.Sound.createAsync(
         { uri: item.audioUrl },
@@ -271,13 +263,23 @@ export default function ContentScreen() {
       soundRef.current = sound;
       sound.setOnPlaybackStatusUpdate(status => {
         if (status.isLoaded && status.didJustFinish) {
-          setIsPlaying(false);
+          // Auto-advance to next item in queue
+          const q = queueRef.current;
+          const cur = currentItemRef.current;
+          const idx = q.findIndex(i => i.id === cur?.id);
+          const nextItem = idx !== -1 && idx < q.length - 1 ? q[idx + 1] : null;
+          // Remove finished item from queue
+          if (cur) setQueue(prev => prev.filter(i => i.id !== cur.id));
+          if (nextItem) {
+            playItem(nextItem);
+          } else {
+            setCurrentItem(null);
+            setIsPlaying(false);
+          }
         }
       });
       setCurrentItem(item);
       setIsPlaying(true);
-
-      // Mark as recently played
       setRecentlyPlayed(prev => {
         const without = prev.filter(r => r.id !== item.id);
         return [item, ...without].slice(0, 10);
@@ -289,6 +291,36 @@ export default function ContentScreen() {
     }
   };
 
+  const handlePlay = async (item: ContentItem) => {
+    if (currentItem?.id === item.id) {
+      if (isPlaying) {
+        await soundRef.current?.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await soundRef.current?.playAsync();
+        setIsPlaying(true);
+      }
+      return;
+    }
+    await playItem(item);
+  };
+
+  const handleSkipNext = async () => {
+    const idx = queue.findIndex(i => i.id === currentItem?.id);
+    if (idx !== -1 && idx < queue.length - 1) {
+      const skipped = currentItem;
+      const next = queue[idx + 1];
+      if (skipped) setQueue(prev => prev.filter(i => i.id !== skipped.id));
+      await playItem(next);
+    }
+  };
+
+  const handlePlayQueue = async () => {
+    if (queue.length === 0) return;
+    setQueueVisible(false);
+    await playItem(queue[0]);
+  };
+
   const toggleMiniPlayer = async () => {
     if (isPlaying) {
       await soundRef.current?.pauseAsync();
@@ -298,6 +330,9 @@ export default function ContentScreen() {
       setIsPlaying(true);
     }
   };
+
+  const queueIndex = queue.findIndex(i => i.id === currentItem?.id);
+  const hasNextInQueue = queueIndex !== -1 && queueIndex < queue.length - 1;
 
   const addToQueue = (item: ContentItem) => {
     if (!queue.find(q => q.id === item.id)) setQueue(prev => [...prev, item]);
@@ -505,14 +540,23 @@ export default function ContentScreen() {
           </View>
           <View style={styles.miniPlayerInfo}>
             <Text style={styles.miniPlayerTitle} numberOfLines={1}>{currentItem.title}</Text>
-            <Text style={styles.miniPlayerSub}>{currentItem.duration_minutes} min · {currentItem.category}</Text>
+            <Text style={styles.miniPlayerSub}>
+              {queueIndex !== -1
+                ? `${queueIndex + 1} of ${queue.length} · ${currentItem.category}`
+                : `${currentItem.duration_minutes} min · ${currentItem.category}`}
+            </Text>
           </View>
           <TouchableOpacity style={styles.miniPlayerBtn} onPress={toggleMiniPlayer}>
             {isPlaying
-              ? <Pause color={colors.cream} size={20} fill={colors.cream} />
-              : <Play  color={colors.cream} size={20} fill={colors.cream} />
+              ? <Pause color={colors.cream} size={18} fill={colors.cream} />
+              : <Play  color={colors.cream} size={18} fill={colors.cream} />
             }
           </TouchableOpacity>
+          {hasNextInQueue && (
+            <TouchableOpacity style={styles.miniPlayerSkip} onPress={handleSkipNext}>
+              <SkipForward color={colors.cream} size={18} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.miniPlayerClose} onPress={stopCurrent}>
             <X color={colors.textMuted} size={18} />
           </TouchableOpacity>
@@ -547,41 +591,63 @@ export default function ContentScreen() {
               </Text>
             </View>
           ) : (
-            <FlatList
-              data={queue}
-              keyExtractor={item => item.id}
-              style={styles.queueList}
-              renderItem={({ item, index }) => (
-                <View style={styles.queueItem}>
-                  <View style={[styles.queueEmoji, { backgroundColor: item.accentColor + '22' }]}>
-                    <Text style={{ fontSize: 20 }}>{item.emoji}</Text>
-                  </View>
-                  <View style={styles.queueItemInfo}>
-                    <Text style={styles.queueItemTitle}>{item.title}</Text>
-                    <Text style={styles.queueItemDuration}>{item.duration_minutes} min</Text>
-                  </View>
-                  <View style={styles.queueItemControls}>
+            <>
+              <TouchableOpacity style={styles.playQueueBtn} onPress={handlePlayQueue}>
+                <Play color={colors.dark} size={16} fill={colors.dark} />
+                <Text style={styles.playQueueBtnText}>
+                  {currentItem && queueIndex !== -1 ? 'Restart Queue' : 'Play Queue'}
+                </Text>
+              </TouchableOpacity>
+              <FlatList
+                data={queue}
+                keyExtractor={item => item.id}
+                style={styles.queueList}
+                renderItem={({ item, index }) => {
+                  const isNowPlaying = currentItem?.id === item.id;
+                  return (
                     <TouchableOpacity
-                      style={[styles.reorderBtn, index === 0 && styles.reorderBtnDisabled]}
-                      onPress={() => moveUp(index)}
-                      disabled={index === 0}
+                      style={[styles.queueItem, isNowPlaying && styles.queueItemPlaying]}
+                      onPress={() => { playItem(item); setQueueVisible(false); }}
+                      activeOpacity={0.8}
                     >
-                      <ChevronUp color={index === 0 ? colors.border : colors.textMuted} size={15} />
+                      <View style={[styles.queueEmoji, { backgroundColor: item.accentColor + '22' }]}>
+                        <Text style={{ fontSize: 20 }}>{item.emoji}</Text>
+                        {isNowPlaying && isPlaying && (
+                          <View style={styles.queuePlayingDot} />
+                        )}
+                      </View>
+                      <View style={styles.queueItemInfo}>
+                        <Text style={[styles.queueItemTitle, isNowPlaying && styles.queueItemTitlePlaying]}>
+                          {item.title}
+                        </Text>
+                        <Text style={styles.queueItemDuration}>
+                          {isNowPlaying ? (isPlaying ? '▶ Now Playing' : '⏸ Paused') : `${item.duration_minutes} min`}
+                        </Text>
+                      </View>
+                      <View style={styles.queueItemControls}>
+                        <TouchableOpacity
+                          style={[styles.reorderBtn, index === 0 && styles.reorderBtnDisabled]}
+                          onPress={(e) => { e.stopPropagation?.(); moveUp(index); }}
+                          disabled={index === 0}
+                        >
+                          <ChevronUp color={colors.textMuted} size={15} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.reorderBtn, index === queue.length - 1 && styles.reorderBtnDisabled]}
+                          onPress={(e) => { e.stopPropagation?.(); moveDown(index); }}
+                          disabled={index === queue.length - 1}
+                        >
+                          <ChevronDown color={colors.textMuted} size={15} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.removeBtn} onPress={(e) => { e.stopPropagation?.(); removeFromQueue(item.id); }}>
+                          <X color={colors.error} size={15} />
+                        </TouchableOpacity>
+                      </View>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.reorderBtn, index === queue.length - 1 && styles.reorderBtnDisabled]}
-                      onPress={() => moveDown(index)}
-                      disabled={index === queue.length - 1}
-                    >
-                      <ChevronDown color={index === queue.length - 1 ? colors.border : colors.textMuted} size={15} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.removeBtn} onPress={() => removeFromQueue(item.id)}>
-                      <X color={colors.error} size={15} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            />
+                  );
+                }}
+              />
+            </>
           )}
         </View>
       </Modal>
@@ -1006,5 +1072,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 2,
+  },
+
+  // Play queue button
+  playQueueBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.gold,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  playQueueBtnText: {
+    ...typography.body,
+    color: colors.dark,
+    fontFamily: 'Fredoka-Medium',
+  },
+
+  // Queue item playing state
+  queueItemPlaying: {
+    backgroundColor: colors.gold + '15',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    marginHorizontal: -spacing.sm,
+  },
+  queueItemTitlePlaying: {
+    color: colors.gold,
+  },
+  queuePlayingDot: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.gold,
+  },
+
+  // Mini player skip button
+  miniPlayerSkip: {
+    padding: 4,
   },
 });

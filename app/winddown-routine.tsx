@@ -11,7 +11,7 @@ import { useWindDown } from '@/contexts/WindDownContext';
 
 export type WindDownItem = {
   id: string;
-  type: 'breathing' | 'phone' | 'lights' | 'audio' | 'meditation' | 'music' | 'stretching' | 'journaling' | 'reading' | 'gratitude';
+  type: 'phone' | 'lights' | 'audio' | 'meditation' | 'music' | 'stretching' | 'journaling' | 'reading' | 'gratitude';
   title: string;
   icon: string;
   enabled: boolean;
@@ -31,14 +31,6 @@ type ItemDefinition = {
 };
 
 const AVAILABLE_ITEMS: ItemDefinition[] = [
-  {
-    id: 'breathing',
-    type: 'breathing',
-    title: 'Breathing Exercises',
-    icon: '🧘',
-    duration: 10,
-    description: '4-7-8 breathing pattern to calm your mind and prepare for sleep. Teddy will guide you through each breath.',
-  },
   {
     id: 'meditation',
     type: 'meditation',
@@ -326,14 +318,14 @@ export default function WindDownRoutineScreen() {
                   onPress={() => moveItem(item.id, 'up')}
                   disabled={index === 0}
                 >
-                  <ChevronUp color={index === 0 ? colors.border : colors.textMuted} size={18} />
+                  <ChevronUp color={colors.textMuted} size={18} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.moveButtonInline, index === sortedItems.length - 1 && styles.moveButtonDisabled]}
                   onPress={() => moveItem(item.id, 'down')}
                   disabled={index === sortedItems.length - 1}
                 >
-                  <ChevronDown color={index === sortedItems.length - 1 ? colors.border : colors.textMuted} size={18} />
+                  <ChevronDown color={colors.textMuted} size={18} />
                 </TouchableOpacity>
               </View>
             )}
@@ -342,14 +334,13 @@ export default function WindDownRoutineScreen() {
                 <Text style={styles.iconEmoji}>{item.icon}</Text>
               </View>
               <View style={styles.routineItemInfo}>
-                <View style={styles.routineItemTitleRow}>
-                  <View style={styles.routineItemTitleWithDuration}>
-                    <Text style={styles.routineItemTitle}>{item.title}</Text>
-                    {itemDef && (
-                      <Text style={styles.routineItemDurationInline}>{itemDef.duration} min</Text>
-                    )}
-                  </View>
-                  <Text style={styles.routineItemTimeInline}>{startTime} min before bed</Text>
+                <Text style={styles.routineItemTitle}>{item.title}</Text>
+                <View style={styles.routineItemMeta}>
+                  {itemDef && (
+                    <Text style={styles.routineItemMetaText}>⏱ {itemDef.duration} min</Text>
+                  )}
+                  <Text style={styles.routineItemMetaDot}>·</Text>
+                  <Text style={styles.routineItemMetaText}>🌙 {startTime} min before bed</Text>
                 </View>
               </View>
             </View>
@@ -398,7 +389,7 @@ export default function WindDownRoutineScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionTitle}>Your Routine</Text>
-        <Text style={styles.sectionSubtitle}>Use arrows to reorder • Swipe left to remove</Text>
+        <Text style={styles.sectionSubtitle}>↑ move earlier  ↓ move later • Swipe left to remove</Text>
 
         {sortedItems.length === 0 ? (
           <Card style={styles.emptyCard}>
@@ -604,34 +595,24 @@ const styles = StyleSheet.create({
   routineItemInfo: {
     flex: 1,
   },
-  routineItemTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  routineItemTitleWithDuration: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-    flexShrink: 0,
-  },
   routineItemTitle: {
     ...typography.body,
     color: colors.cream,
     fontFamily: 'Fredoka-Medium',
+    marginBottom: 4,
   },
-  routineItemTitleDisabled: {
-    opacity: 0.4,
-    textDecorationLine: 'line-through',
+  routineItemMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  routineItemDurationInline: {
+  routineItemMetaText: {
     ...typography.caption,
     color: colors.textMuted,
   },
-  routineItemTimeInline: {
+  routineItemMetaDot: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.border,
   },
   routineItemMeta: {
     flexDirection: 'row',
@@ -757,7 +738,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   moveButtonDisabled: {
-    opacity: 0.3,
+    opacity: 0.25,
   },
   moveButtonText: {
     ...typography.caption,

@@ -5,67 +5,47 @@ type WindDownContextType = {
   routineItems: WindDownItem[];
   setRoutineItems: React.Dispatch<React.SetStateAction<WindDownItem[]>>;
   getEnabledItems: () => WindDownItem[];
+  checkedItems: Set<string>;
+  toggleCheckedItem: (id: string) => void;
+  resetCheckedItems: () => void;
+  isRoutineComplete: boolean;
 };
 
 const WindDownContext = createContext<WindDownContextType | undefined>(undefined);
 
-const DEFAULT_ROUTINE: WindDownItem[] = [
-  {
-    id: 'breathing',
-    type: 'breathing',
-    title: 'Breathing Exercises',
-    icon: '🧘',
-    enabled: true,
-    minutesBeforeBedtime: 30,
-    order: 0,
-    duration: 10,
-    description: '4-7-8 breathing pattern to calm your mind and prepare for sleep. Teddy will guide you through each breath.',
-  },
-  {
-    id: 'phone',
-    type: 'phone',
-    title: 'Put Phone Away',
-    icon: '📱',
-    enabled: true,
-    minutesBeforeBedtime: 20,
-    order: 1,
-    duration: 1,
-    description: 'Time to disconnect from screens. Place your phone in another room or face down to avoid distractions.',
-  },
-  {
-    id: 'lights',
-    type: 'lights',
-    title: 'Dim the Lights',
-    icon: '💡',
-    enabled: true,
-    minutesBeforeBedtime: 19,
-    order: 2,
-    duration: 2,
-    description: 'Create a sleep-friendly environment by dimming lights. This helps signal to your body that it\'s time to wind down.',
-  },
-  {
-    id: 'audio',
-    type: 'audio',
-    title: 'Sleep Sounds',
-    icon: '🔊',
-    enabled: true,
-    minutesBeforeBedtime: 17,
-    order: 3,
-    duration: 30,
-    description: 'Calming nature sounds like rain, ocean waves, or white noise to help you drift off. Teddy can play these throughout the night.',
-  },
-];
-
 export function WindDownProvider({ children }: { children: ReactNode }) {
-  // New users start with no routine; they set it up in winddown-routine
   const [routineItems, setRoutineItems] = useState<WindDownItem[]>([]);
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
 
-  const getEnabledItems = () => {
-    return routineItems.filter(item => item.enabled);
+  const getEnabledItems = () => routineItems.filter(item => item.enabled);
+
+  const toggleCheckedItem = (id: string) => {
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
+  const resetCheckedItems = () => setCheckedItems(new Set());
+
+  const enabledItems = routineItems.filter(item => item.enabled);
+  const isRoutineComplete =
+    enabledItems.length > 0 && enabledItems.every(item => checkedItems.has(item.id));
+
   return (
-    <WindDownContext.Provider value={{ routineItems, setRoutineItems, getEnabledItems }}>
+    <WindDownContext.Provider
+      value={{
+        routineItems,
+        setRoutineItems,
+        getEnabledItems,
+        checkedItems,
+        toggleCheckedItem,
+        resetCheckedItems,
+        isRoutineComplete,
+      }}
+    >
       {children}
     </WindDownContext.Provider>
   );
