@@ -1,32 +1,66 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, TextInput, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Settings, Bell, Lock, Moon, Circle as HelpCircle, LogOut, ChevronRight, X, TrendingUp } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
 import { router } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { useOnboarding } from '@/contexts/OnboardingContext';
 
 export default function ProfileScreen() {
+  const { data: onboardingData, setOnboardingData } = useOnboarding();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [bedtimeReminders, setBedtimeReminders] = useState(true);
   const [morningCheckins, setMorningCheckins] = useState(true);
-  const [teddyName, setTeddyName] = useState('Teddy');
+  const [teddyName, setTeddyName] = useState(onboardingData.teddyName || 'Teddy');
+  const [userId, setUserId] = useState<string | null>(null);
   const [editingTeddyName, setEditingTeddyName] = useState('');
   const [showTeddyModal, setShowTeddyModal] = useState(false);
 
   const userName = 'The Screenager';
   const currentStreak = 5;
 
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('teddy_name')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data && typeof data.teddy_name === 'string' && data.teddy_name.trim()) {
+        setTeddyName(data.teddy_name.trim());
+      }
+    })();
+  }, []);
+
   const openTeddyModal = () => {
     setEditingTeddyName(teddyName);
     setShowTeddyModal(true);
   };
 
-  const saveTeddyName = () => {
-    if (editingTeddyName.trim()) {
-      setTeddyName(editingTeddyName.trim());
+  const saveTeddyName = async () => {
+    const trimmed = editingTeddyName.trim();
+    if (!trimmed) {
+      setShowTeddyModal(false);
+      return;
     }
+
+    setTeddyName(trimmed);
+    setOnboardingData({ teddyName: trimmed });
     setShowTeddyModal(false);
+
+    if (userId) {
+      await supabase
+        .from('users')
+        .update({ teddy_name: trimmed })
+        .eq('id', userId);
+    }
   };
 
   return (

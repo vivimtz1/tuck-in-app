@@ -322,7 +322,13 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         ) : (
-          <Card style={[styles.scheduleCard, isRoutineComplete && styles.scheduleCardComplete]}>
+          <Card
+            style={
+              isRoutineComplete
+                ? { ...styles.scheduleCard, ...styles.scheduleCardComplete }
+                : styles.scheduleCard
+            }
+          >
             <TouchableOpacity
               style={styles.scheduleHeader}
               onPress={() => setIsTimelineExpanded(!isTimelineExpanded)}
@@ -451,9 +457,15 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.wakeButton} onPress={logWakeTime}>
+              <TouchableOpacity
+                style={[
+                  styles.wakeButton,
+                  isBetweenBedtimeAndWake ? styles.wakeButtonNight : styles.wakeButtonDay,
+                ]}
+                onPress={logWakeTime}
+              >
                 <Sun color={colors.dark} size={18} />
-                <Text style={styles.wakeButtonText}>I Just Woke Up ☀️</Text>
+                <Text style={styles.wakeButtonText}>I Just Woke Up</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelLink} onPress={handleCancelBedtime}>
                 <Text style={styles.cancelLinkText}>Cancel — I didn't go to bed yet</Text>
@@ -477,15 +489,15 @@ export default function HomeScreen() {
                 </View>
               </View>
               <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
-                <Moon color={colors.cream} size={16} />
-                <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+                <Moon color={colors.dark} size={16} />
+                <Text style={styles.bedButtonText}>Going to Bed</Text>
               </TouchableOpacity>
             </>
           ) : (
             <View style={styles.sleepLogOption}>
               <TouchableOpacity style={styles.bedButton} onPress={logBedtime}>
-                <Moon color={colors.cream} size={16} />
-                <Text style={styles.bedButtonText}>Going to Bed 🌙</Text>
+                <Moon color={colors.dark} size={16} />
+                <Text style={styles.bedButtonText}>Going to Bed</Text>
               </TouchableOpacity>
               <Text style={styles.sleepLogOptionHint}>Tap when you're heading to bed to start tracking</Text>
             </View>
@@ -651,9 +663,11 @@ const styles = StyleSheet.create({
   sleepLogOptionLabel: { ...typography.caption, color: colors.textSecondary, fontFamily: 'Fredoka-Medium' },
   sleepLogOptionHint: { ...typography.small, color: colors.textMuted },
   sleepLogSeparator: { height: 1, backgroundColor: colors.border },
-  bedButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.brown, borderRadius: borderRadius.md, paddingVertical: spacing.md },
-  bedButtonText: { ...typography.body, color: colors.cream, fontFamily: 'Fredoka-Medium' },
-  wakeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.gold, borderRadius: borderRadius.md, paddingVertical: spacing.md },
+  bedButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.cream, borderRadius: borderRadius.md, paddingVertical: spacing.md },
+  bedButtonText: { ...typography.body, color: colors.dark, fontFamily: 'Fredoka-Medium' },
+  wakeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderRadius: borderRadius.md, paddingVertical: spacing.md },
+  wakeButtonNight: { backgroundColor: colors.blue },
+  wakeButtonDay: { backgroundColor: colors.cream },
   wakeButtonText: { ...typography.body, color: colors.dark, fontFamily: 'Fredoka-Medium' },
   wakeButtonOutline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: 'transparent', borderRadius: borderRadius.md, paddingVertical: spacing.md, borderWidth: 1, borderColor: colors.gold },
   wakeButtonOutlineText: { ...typography.body, color: colors.gold, fontFamily: 'Fredoka-Medium' },
