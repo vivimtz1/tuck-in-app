@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect, useRef } from 'react';
 import { Plus, AlarmClock } from 'lucide-react-native';
 import { colors, spacing, typography } from '@/constants/theme';
@@ -18,6 +18,8 @@ function isLocalId(id: string) {
 }
 
 export default function AlarmsScreen() {
+  const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingAlarm, setEditingAlarm] = useState<Alarm | null>(null);
@@ -208,10 +210,31 @@ export default function AlarmsScreen() {
   };
 
   const wakeAlarms = alarms.filter((a) => a.alarm_type === 'wake');
+  const textureSource = Image.resolveAssetSource(require('@/assets/alarms-texture.png'));
+  const textureAspect = textureSource?.width && textureSource?.height ? textureSource.height / textureSource.width : 0.7;
+  const FOOTER_TEXTURE_SCALE = 0.95;
+  const footerTextureH = Math.round(screenWidth * textureAspect * FOOTER_TEXTURE_SCALE);
+  const tabBarH = 70;
+  const footerOffset = tabBarH + insets.bottom;
+  const footerContainerH = footerTextureH + footerOffset;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <View
+        style={[styles.bottomTexture, { height: footerContainerH }]}
+        pointerEvents="none"
+      >
+        <Image
+          source={require('@/assets/alarms-texture.png')}
+          style={[styles.bottomTextureImage, { height: footerContainerH, bottom: -footerOffset }]}
+          resizeMode="contain"
+        />
+      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: footerContainerH + spacing.lg }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Alarms</Text>
           <TouchableOpacity style={styles.addButton} onPress={handleAddAlarm}>
@@ -306,6 +329,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  bottomTexture: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 1,
+  },
+  bottomTextureImage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    width: '100%',
   },
   scrollView: {
     flex: 1,

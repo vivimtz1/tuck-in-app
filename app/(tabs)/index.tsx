@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Image, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
+import { BlurView } from 'expo-blur';
 import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, Headphones, X } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '@/constants/theme';
 import { Card } from '@/components/Card';
@@ -204,11 +205,20 @@ export default function HomeScreen() {
     );
   };
 
+  const insets = useSafeAreaInsets();
+
   const sleepLogTitle = activeSession ? "You're Sleeping..." : "Track Your Sleep";
 
+  const isAwake = !(isWithin15Minutes && !isBetweenBedtimeAndWake);
+  const isAsleep = isBetweenBedtimeAndWake || activeSession;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 0 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.logoContainer}>
@@ -221,6 +231,35 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.greeting}>Good Night</Text>
         </View>
+
+        {isAsleep && (
+          <View style={styles.teddyAwakeWrap}>
+            {Platform.OS !== 'web' ? (
+              <BlurView
+                intensity={22}
+                tint="dark"
+                style={StyleSheet.absoluteFillObject}
+              />
+            ) : (
+              <View style={[StyleSheet.absoluteFillObject, styles.sleepGlassFallback]} />
+            )}
+            <View style={[StyleSheet.absoluteFillObject, styles.sleepGlassTint]} />
+            <Image
+              source={require('@/assets/teddy-asleep.png')}
+              style={styles.teddyAwakeImage}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+        {isAwake && !isAsleep && (
+          <View style={styles.teddyAwakeWrap}>
+            <Image
+              source={require('@/assets/teddy-awake.png')}
+              style={styles.teddyAwakeImage}
+              resizeMode="contain"
+            />
+          </View>
+        )}
 
         {isWithin15Minutes && !isBetweenBedtimeAndWake ? (
           <Card style={styles.bedtimeCard}>
@@ -496,7 +535,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -511,6 +550,14 @@ const styles = StyleSheet.create({
   teddyEmoji: { fontSize: 18 },
   currentTime: { ...typography.body, color: colors.textSecondary },
   greeting: { ...typography.h1, color: colors.cream },
+  teddyAwakeWrap: { marginHorizontal: spacing.lg, marginBottom: spacing.lg, overflow: 'hidden', borderRadius: borderRadius.lg },
+  teddyAwakeImage: { width: '100%', height: 220, backgroundColor: colors.surface, borderRadius: borderRadius.lg, zIndex: 1 },
+  sleepGlassFallback: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  sleepGlassTint: {
+    backgroundColor: 'rgba(160, 196, 229, 0.06)',
+  },
   bedtimeCard: { marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.blue, padding: spacing.lg },
   bedtimeHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   bedtimeTitle: { ...typography.h3, color: colors.dark },
@@ -530,11 +577,17 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.h3, color: colors.cream, marginHorizontal: spacing.lg, marginBottom: spacing.md },
   scheduleCard: { marginHorizontal: spacing.lg, marginBottom: spacing.lg },
   windDownEmptyCard: {
-    marginHorizontal: spacing.lg, marginBottom: spacing.lg,
-    flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: colors.cardBg, borderRadius: borderRadius.lg,
-    padding: spacing.lg, borderWidth: 1, borderColor: colors.blue + '60',
-    borderStyle: 'dashed', gap: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.cardBg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.blue + '60',
+    borderStyle: 'dashed',
+    gap: spacing.md,
   },
   windDownEmptyIconWrap: { width: 44, height: 44, borderRadius: borderRadius.full, backgroundColor: colors.blue + '25', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   windDownEmptyContent: { flex: 1, gap: spacing.xs },
