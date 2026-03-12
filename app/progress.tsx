@@ -172,7 +172,7 @@ export default function ProgressScreen() {
           </Card>
 
           <Card style={styles.statCard}>
-            <View style={styles.statIcon}><Calendar color={colors.success} size={24} /></View>
+            <View style={styles.statIcon}><Calendar color={colors.blue} size={24} /></View>
             <Text style={styles.statValue}>{periodData.stats.consistency}</Text>
             <Text style={styles.statLabel}>Consistency</Text>
           </Card>
@@ -208,11 +208,11 @@ export default function ProgressScreen() {
           </View>
           <View style={styles.chartLegend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.blue }]} />
+              <View style={[styles.legendDot, { backgroundColor: colors.cream }]} />
               <Text style={styles.legendText}>Below Goal</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+              <View style={[styles.legendDot, { backgroundColor: colors.blue }]} />
               <Text style={styles.legendText}>Goal Met (7h+)</Text>
             </View>
           </View>
@@ -225,7 +225,7 @@ export default function ProgressScreen() {
           {/* Sleep summary */}
           <View style={styles.goalStatus}>
             <Text style={styles.goalStatusLabel}>Last night's goal:</Text>
-            <Text style={[styles.goalStatusValue, { color: lastNightGoalMet ? colors.success : colors.warning }]}>
+            <Text style={[styles.goalStatusValue, { color: lastNightGoalMet ? colors.blue : colors.warning }]}>
               {lastNightGoalMet ? '✓ Met' : '✗ Missed'}
             </Text>
           </View>
@@ -485,12 +485,12 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: '100%',
-    backgroundColor: colors.blue,
+    backgroundColor: colors.cream,
     borderTopLeftRadius: borderRadius.sm,
     borderTopRightRadius: borderRadius.sm,
     minHeight: 4,
   },
-  barSuccess: { backgroundColor: colors.success },
+  barSuccess: { backgroundColor: colors.blue },
   barLabel: {
     ...typography.small,
     color: colors.textMuted,
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
   },
   goalStatusValue: {
     ...typography.h3,
-    color: colors.success,
+    color: colors.blue,
   },
   sleepSummary: {
     alignItems: 'center',

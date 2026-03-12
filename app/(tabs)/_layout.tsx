@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Hop as Home, Library, User, Bell } from 'lucide-react-native';
+import { Home, Library, User, Bell } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
 
 export default function TabLayout() {
