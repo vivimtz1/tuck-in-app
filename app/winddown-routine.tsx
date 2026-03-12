@@ -326,14 +326,14 @@ export default function WindDownRoutineScreen() {
                   onPress={() => moveItem(item.id, 'up')}
                   disabled={index === 0}
                 >
-                  <ChevronUp color={index === 0 ? colors.border : colors.textMuted} size={18} />
+                  <ChevronUp color={colors.textMuted} size={18} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.moveButtonInline, index === sortedItems.length - 1 && styles.moveButtonDisabled]}
                   onPress={() => moveItem(item.id, 'down')}
                   disabled={index === sortedItems.length - 1}
                 >
-                  <ChevronDown color={index === sortedItems.length - 1 ? colors.border : colors.textMuted} size={18} />
+                  <ChevronDown color={colors.textMuted} size={18} />
                 </TouchableOpacity>
               </View>
             )}
@@ -398,7 +398,7 @@ export default function WindDownRoutineScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionTitle}>Your Routine</Text>
-        <Text style={styles.sectionSubtitle}>Use arrows to reorder • Swipe left to remove</Text>
+        <Text style={styles.sectionSubtitle}>↑ move earlier  ↓ move later • Swipe left to remove</Text>
 
         {sortedItems.length === 0 ? (
           <Card style={styles.emptyCard}>
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   moveButtonDisabled: {
-    opacity: 0.3,
+    opacity: 0.25,
   },
   moveButtonText: {
     ...typography.caption,

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { Moon, Sun, Bell, Wind, Calendar, ChevronDown, ChevronUp, Clock, Settings2, Pencil, Headphones, X } from 'lucide-react-native';
@@ -194,14 +194,7 @@ export default function HomeScreen() {
   };
 
   const handleCancelBedtime = () => {
-    Alert.alert(
-      'Cancel sleep log?',
-      "This will stop tracking tonight's sleep.",
-      [
-        { text: 'Keep tracking', style: 'cancel' },
-        { text: 'Cancel log', style: 'destructive', onPress: cancelBedtime },
-      ]
-    );
+    cancelBedtime();
   };
 
   const sleepLogTitle = activeSession ? "You're Sleeping..." : "Track Your Sleep";
@@ -269,15 +262,20 @@ export default function HomeScreen() {
               <View style={styles.scheduleHeaderLeft}>
                 <Clock color={colors.blue} size={24} />
                 <View style={styles.scheduleHeaderText}>
-                  <Text style={styles.scheduleTitle}>{nextItem.title}</Text>
-                  <Text style={styles.scheduleSubtitle}>{formatScheduleTime(nextItem.time)}</Text>
+                  <Text style={styles.scheduleTitle}>Wind-Down Routine</Text>
+                  <Text style={styles.scheduleSubtitle}>
+                    {isTimelineExpanded ? 'Tonight\'s schedule' : `Next: ${nextItem.title} · ${formatScheduleTime(nextItem.time)}`}
+                  </Text>
                 </View>
               </View>
-              {isTimelineExpanded ? (
-                <ChevronUp color={colors.textMuted} size={20} />
-              ) : (
-                <ChevronDown color={colors.textMuted} size={20} />
-              )}
+              <View style={styles.scheduleExpandHint}>
+                <Text style={styles.scheduleExpandHintText}>{isTimelineExpanded ? 'Hide' : 'View'}</Text>
+                {isTimelineExpanded ? (
+                  <ChevronUp color={colors.blue} size={18} />
+                ) : (
+                  <ChevronDown color={colors.blue} size={18} />
+                )}
+              </View>
             </TouchableOpacity>
 
             {isTimelineExpanded && (
@@ -558,14 +556,16 @@ const styles = StyleSheet.create({
   sleepLogInBedText: { flex: 1 },
   sleepLogInBedTitle: { ...typography.h3, color: colors.cream, marginBottom: 2 },
   sleepLogInBedSub: { ...typography.caption, color: colors.textMuted },
-  cancelLink: { alignItems: 'center', paddingTop: spacing.md },
-  cancelLinkText: { ...typography.caption, color: colors.textMuted },
+  cancelLink: { alignItems: 'center', paddingTop: spacing.md, paddingVertical: spacing.sm },
+  cancelLinkText: { ...typography.caption, color: colors.blue, textDecorationLine: 'underline' },
   sleepLogSummary: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   sleepLogSummaryItem: { flex: 1, alignItems: 'center' },
   sleepLogSummaryValue: { ...typography.h3, color: colors.blue, marginBottom: 2 },
   sleepLogSummaryLabel: { ...typography.small, color: colors.textMuted },
   sleepLogDivider: { width: 1, height: 40, backgroundColor: colors.border, marginHorizontal: spacing.md },
   scheduleHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  scheduleExpandHint: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  scheduleExpandHintText: { ...typography.caption, color: colors.blue, fontFamily: 'Fredoka-Medium' },
   scheduleHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
   scheduleHeaderText: { flex: 1 },
   scheduleTitle: { ...typography.h3, color: colors.cream, marginBottom: 2 },
